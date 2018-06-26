@@ -760,16 +760,16 @@
     - 通过代码分割和懒加载, 让用户在尽可能的下载时间内加载想要的页面, 只看一个页面的时候, 下载所有的代码, 带宽浪费;
     - 在webpack中, 代码分割和懒加载是一个概念, webpack会自动分割代码, 然后再把需要的代码加载进来, 不是通过配置来实现的, 通过改变写代码的方式来实现的, 当依赖一个模块的时候, 告诉webpack我们是需要懒加载或者代码切分, 通过两种方式来实现
         - webpack.methods
-            - require.ensure()
-            - 加载进来的代码并不会执行, 在callback中引入, 这个时候才会去执行, 第三个参数errorBack,  第四个参数chunkName
-            - 如果浏览器不支持proimise, 需要添加垫片
+            - require.ensure() 接收四个参数 
+            - 第一个参数dependencies, 加载进来的代码并不会执行, 在callback中引入, 这个时候才会去执行, 第三个参数errorBack,  第四个参数chunkName
+            - 如果浏览器不支持promise, 需要添加垫片
             - require.include 只有一个参数, 只引入进来, 但不执行
                 - 当两个子模块都引入了第三个模块, 可以将第三个模块放入父模块中, 这样动态加载子模块的时候, 父模块已经有了第三方模块, 不会在多余加载; 比如subPageA, subPageB都引入了moduleA, 但是moduleA不会被打包进父依赖, 所以可以使用include
-        - ES2015 loader spec (动态import)
+        - ES2015 loader spec (动态import) stage-3
             - 早起system.import
             - 后来import方式 返回一个Promise
                 - import().then
-        - webpack import function
+        - webpack import function 通过注释的方式来解决动态的chunkName以及加载模式
             ```js
             import(
                 /*webpackChunkName: async-chunk-name*/
@@ -780,9 +780,11 @@
     - 代码分割的场景
         - 分离业务代码和第三方依赖 (提取公共代码中有涉及)
         - 分离业务代码 和 业务公共代码 和 第三方依赖; 相比于上一个,将业务代码拆成两部分
-        - 分离首次加载 和 访问后加载的代码 (访问速度优化相关的) - LazyLoad
-    
+        - 分离首次加载 和 访问后加载的代码 (访问速度优化相关的) - LazyLoad - 提高首屏加载速度
+
     ```js
+    // 0. 单入口pageA, 不做任何的优化 直接引入 subPageA, subPageB, lodash 会发现pageA非常大
+    
     // 1. 异步引入, 将lodash打包到vendor中
     require.ensure('lodash', require => {
       const _ = require('lodash')
@@ -792,7 +794,9 @@
     
     // 2. pageA.js中修改
     if (page === 'subPageA') {
+      // require([]) 参数是空数组的话, 里面的require的包还是会被异步打包
       require.ensure(['./subPageA'], require => {
+        // 如果不require的话, 那么就不会执行subPageA中的代码块
         const subPageA = require('./subPageA')
         console.log(subPageA)
       }, 'subPageA')
@@ -803,12 +807,108 @@
       }, 'subPageB')
     }
     // 结果: moduleA分别在打包好的文件 subPageA.chunk.js 和 subPageB.chunk.js中, 公共部分moduleA没有被提取出来
-
+    
     // 3. 单entry有上述公共代码的情况的话, 使用inlcude的情况处理, 将module在父模块pageA.js提前引入, 但是并不运行
     require.include('./moduleA')
     // 结果: moduleA被打包进入了pageA.bundle.js中, 这样就完成了代码分割
+    
+    
+    // --- import 方案 ------------- 
+    /*   坑: import 只有在stage-0 或者 syntax-dynamic-import
+    	yarn add babel-preset-stage-0 babel-plugin-syntax-dynamic-import --dev
+    	.babelrc   { "presets": ["stage-0"], "plugins": ["syntax-dynamic-import"] }
+    	上述两种情况只使用一种即可
+    */
+    // 在import的时候 代码实际上已经执行了
+    if (page) {
+      import(
+        /* webpackChunkName: "subPageA" */
+        /* webpackMode: "lazy" */
+        './subPageC'
+      ).then(subPageC => {
+        console.log(subPageC)
+      })
+    } else {
+      import(
+        /* webpackChunkName: 'subPageD' */
+        /* webpackMode: "lazy" */
+        './subPageD'
+      )
+    }
     ```
+    - async 在代码分割中如何使用, 即结合commonChunkPlugin
 
-​    
+      ```
+      // webpack.plugin.lazy.cmp.js
+      entry: {
+          pageA: path.resolve(__dirname, 'src/lazy_cmp', 'pageA'),
+          pageB: path.resolve(__dirname, 'src/lazy', 'pageB'),
+          vendor: ['lodash']
+      }
+      
+      // webpack3
+      plugins: [
+      	new wepback.optimize.CommonsChunkPlugin({
+         		// async 指定为true表示异步模块, 或者指定为 异步模块提取后的名称
+              async: 'async-common',
+              children: true, // 表示不仅仅是两个入口页面之间, 而且还是两个页面之间的子依赖中去寻找
+              minChunks: 2
+          }),
+          new wepback.optimize.CommonsChunkPlugin({
+          	// lodash打包进入vendor中, manifest是webpack运行时代码
+              names: ['vendor', 'manifest'],
+              minChunks: Infinity
+          })
+      ]
+      
+      // webpack4
+      optimization: {
+          // webpack runtime 代码
+          runtimeChunk: {
+            name: 'manifest'
+          },
+          // 公共模块提取
+          splitChunks: {
+            chunks: 'all', // async(默认, 只会提取异步加载模块的公共代码), initial(提取初始入口模块的公共代码), all(同时提取前两者),
+            minSize: 30000, // 大于30K会被抽离到公共模块
+            // minChunks: 2, //  模块出现两次次就会被抽离到公共模块中
+            minChunks: Infinity, // 不需要在任何的地方重复
+            maxAsyncRequests: 5, // 异步模块, 一次最多只能加载5个,
+            maxInitialRequests: 3, // 入口模块最多只能加载3个
+            name: 'vendor' // 打包出来公共模块的名称
+          }
+      }
+      
+      
+      // pageA.js
+      import _ from 'lodash'
+      
+      / 1. 这里不再使用include, 因为会和pageA打包到一起, 这里的目的是 将其异步单独提取出来
+      // require.include('./moduleA')
+      
+      const page = 'subPageA' // 在pageB中, 这里page='subPageB', 其余一样
+      if (page) {
+        import(
+          /* webpackChunkName: "subPageA" */
+          /* webpackMode: "lazy" */
+          './subPageA'
+        ).then(subPageA => {
+          console.log(subPageA)
+        })
+      } else {
+        import(
+          /* webpackChunkName: 'subPageB' */
+          /* webpackMode: "lazy" */
+          './subPageB'
+        )
+      }
+      
+      // 2.  webpack3 结果:  将异步打包结果中subPageA和subPageB中的公共模块moduleA, 单独的提取到了async-common-pageA.chunk.js中
+      	这里比较坑的困惑: commonsChunkPlugin参数说的不是很明确, 比如async, children, deepChildren, minChunk, 他们之间是有依赖忽视关系的
+      	
+      // 3. webpack4 结果: chunks:all, 结果是将多次引用的公共模块moduleA, lodash提取到了vendor.chunk中, 其余的和webpack3一样, 生成打包文件pageA.chunk, pageB.chunk(入口文件), subPageA.chunk, subPageB.chunk(异步单独提取), manifest.chunk(webpack-runtime单独提取)
+      ```
+
+      
 
 ​    

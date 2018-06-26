@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "lazy": "webpack --config webpack.plugin.lazy.js",
-    "cmp": "webpack --config webpack.plugin.cmchunk.js",
+    "cmp": "webpack --config webpack.plugin.cmp.js",
+    "lazycmp": "webpack --config webpack.plugin.lazy.cmp.js",
     "test": "webpack --config webpack.config.test.js",
     "ts": "webpack --config webpack.config.ts.js"
   },
@@ -14,6 +15,7 @@
     "babel-loader": "7.1.4",
     "babel-plugin-transform-runtime": "6.23.0",
     "babel-preset-env": "1.7.0",
+    "babel-preset-stage-0": "6.24.1",
     "ts-loader": "4.4.1",
     "typescript": "2.9.2",
     "webpack": "4.12.0",

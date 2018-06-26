@@ -1,3 +1,5 @@
+// common-chunk-plugin
+
 // 使用commonjs规范
 const path = require('path')
 const webpack = require('webpack')

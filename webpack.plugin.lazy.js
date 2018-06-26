@@ -1,6 +1,8 @@
+// 懒加载和代码分割: 不是通过配置来实现, 而是通过包的引入方式
+
 // 使用commonjs规范
 const path = require('path')
-const webpack = require('webpack')
+
 module.exports = {
   mode: 'development',
   entry: {
@@ -11,7 +13,8 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist/lazy'),
     filename: '[name].bundle.js',
-    chunkFilename: '[name].chunk.js'
+    chunkFilename: '[name].chunk.js',
+    publicPath: './../../dist/lazy/'
   },
   module: {
     rules: [
@@ -25,10 +28,6 @@ module.exports = {
     ]
   },
   plugins: [
-    // new webpack.optimize.CommonsChunkPlugin({
-    //   name: 'common_name',
-    //   minChunks: 2
-    // })
   ],
   optimization: {
     // // webpack runtime 代码
