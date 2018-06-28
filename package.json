@@ -8,7 +8,8 @@
     "cmp": "webpack --config webpack.plugin.cmp.js",
     "lazycmp": "webpack --config webpack.plugin.lazy.cmp.js",
     "test": "webpack --config webpack.config.test.js",
-    "ts": "webpack --config webpack.config.ts.js"
+    "ts": "webpack --config webpack.config.ts.js",
+    "style": "webpack --config webpack.config.style.js"
   },
   "devDependencies": {
     "babel-core": "6.26.3",
@@ -16,6 +17,9 @@
     "babel-plugin-transform-runtime": "6.23.0",
     "babel-preset-env": "1.7.0",
     "babel-preset-stage-0": "6.24.1",
+    "css-loader": "0.28.11",
+    "file-loader": "1.1.11",
+    "style-loader": "0.21.0",
     "ts-loader": "4.4.1",
     "typescript": "2.9.2",
     "webpack": "4.12.0",

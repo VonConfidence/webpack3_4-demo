@@ -1,0 +1,11 @@
+html {
+  background: gray;
+}
+
+.box {
+  composes: big-box from './common.css';
+  height: 200px;
+  width: 100px;
+  border-radius: 4px;
+  background: #696969;
+}

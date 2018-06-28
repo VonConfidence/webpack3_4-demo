@@ -1,0 +1,14 @@
+body {
+  font-size: 26px;
+}
+
+#app {
+  width: 200px;
+  height: 200px;
+  background: yellow;
+}
+
+.big-box {
+  border: 4px solid red;
+  background: white;
+}

@@ -838,7 +838,7 @@
     ```
     - async 在代码分割中如何使用, 即结合commonChunkPlugin
 
-      ```
+      ```js
       // webpack.plugin.lazy.cmp.js
       entry: {
           pageA: path.resolve(__dirname, 'src/lazy_cmp', 'pageA'),
@@ -909,6 +909,143 @@
       // 3. webpack4 结果: chunks:all, 结果是将多次引用的公共模块moduleA, lodash提取到了vendor.chunk中, 其余的和webpack3一样, 生成打包文件pageA.chunk, pageB.chunk(入口文件), subPageA.chunk, subPageB.chunk(异步单独提取), manifest.chunk(webpack-runtime单独提取)
       ```
 
-      
 
-​    
+
+
+7. 处理CSS
+
+   - 每一个模块都有自己的css文件, 在使用的时候将css样式引入
+
+   - 如何在webpack中引入css
+
+     - style-loader 在页面中创建style标签, 标签里面的内容就是css内容
+
+       - style-loader/url
+       - style-loader/useable
+
+     - css-loader 如何让js可以import一个css文件, 包装一层, 让js可以引入css文件
+
+       ```
+       // index.js
+       import './css/base.css'
+       
+       // webpack.config.style.js
+       	{
+               test: /\.css$/,
+               use: [
+                 {
+                   loader: 'style-loader'
+                 },
+                 {
+                   loader: 'css-loader'
+                 }
+               ]
+            }
+       
+       // 将打包后的文件引入到index.html中
+       // 1. 结果: 在html中生成了style标签, 将base.css标签中的样式放到了style标签中
+       
+       
+       // 2. 生成link标签的形式 (不过用的比较少) 注意publicPath配置
+       use: [
+                 {
+                   loader: 'style-loader/url'
+                   // loader: 'style-loader/useable'
+                 },
+                 {
+                   loader: 'file-loader'
+                 }
+            ]
+       // 结果: style-loader/url 单独生成一份css文件 , 但是引入多个文件的时候, 会生成多个link标签, 会造成越多的网路请求
+       
+       //3. style-loader/useable
+       import base from 'base.css'
+       import common from 'common.css'
+       var flag = false;
+       setInterval(function() {
+           if(flag) {
+               base.use()
+           } else {
+               base.ununse()
+           }
+           flag = !flag;
+       }, 2000)
+       // base.use() 样式插入到style标签中
+       // common.unuse() // 控制样式不被引用
+       // 结果: 没过2000ms, 页面中样式循环引用和删除
+       
+       
+       ```
+
+     - StyleLoader 配置
+
+       -  insertAt (插入位置)
+
+       - insertInto(插入到DOM)
+
+       - singleton (是否只使用一个style标签) 当css模块比较多的时候 会有很多css标签
+
+       - transform (转化, 浏览器环境下, 插入页面之前)
+
+         ```
+         transform: './src/style/css.transform.js'
+         
+         // css.transform.js 文件内容
+         
+         // 该函数并不是在打包的时候执行的,在运行webpack的时候, 是不行执行的
+         // 在style-loader 将样式插入到DOM中的时候 执行的, 运行的环境是在浏览器环境下, 可以拿到浏览器参数, window,UA
+         
+         // 可以根据当前浏览器来对当前的css进行形变
+         module.exports = function(css) {
+           console.log(css)
+           console.log(window.innerWidth)
+           // 输出形变以后的css
+           if (window.innerWidth >= 768) {
+             css = css.replace('yellow', 'dodgerblue')
+           } else {
+             css = css.replace('yellow', 'orange')
+           }
+           return css;
+         }
+         ```
+
+         - 针对每一次在index.js中引入的css文件都会执行上面的代码
+
+     - CssLoader 配置参数
+
+       - alias 解析的别名 将引入css的路径映射到其他地方
+       - importLoader 取决于css处理后面是不是还有其他的loader (sass会使用到 @import)
+       - minimize 是否压缩
+       - modules 是否启用css-modules
+         - 打包出来的样式class 都变成一段随机字符串
+
+   - CSS modules
+
+     - :local  给定一个本地的样式 局部的样式
+
+     - :global 给定一个全局样式
+
+     - compose 继承一个样式
+
+     - compose ... from path 引入一个样式 (尽量将composes放在前面, 这样可以控制引入顺序, 样式不会被覆盖)
+
+       ```js
+       // base.css
+       .box {
+         composes: big-box from './common.css';
+         height: 200px;
+         width: 100px;
+         border-radius: 4px;
+         background: #696969;
+       }
+       ```
+
+       
+
+     - localIdentName: '\[[path\]]\[name\]_\[local\]--\[hash:base64:5\]' 控制生成的class类名
+
+       - path代表引用css路径 name表示文件名称 local本地样式名称 
+
+   - 配置less/sass
+
+   - 提取css代码  - 提取公共代码 做缓存 (不提取的话, 将css代码打包到了js文件中)
