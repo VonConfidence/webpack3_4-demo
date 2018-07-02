@@ -9,3 +9,7 @@ html {
   border-radius: 4px;
   background: #696969;
 }
+
+.header {
+  composes: font from './header.less'
+}

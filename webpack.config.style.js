@@ -41,6 +41,32 @@ module.exports = {
             }
           }
         ]
+      },
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'style-loader',
+            options: {
+              // insertInto: '#app', // 将style标签插入到 #app dom下
+              singleton: true, // 将引用的css放在一个style标签下
+              transform: './src/style/css.transform.js' // css变形的函数
+            }
+            // loader: 'style-loader/url' // 生成的css放在link标签
+          },
+          {
+            loader: 'css-loader',
+            // loader: 'file-loader'
+            options: {
+              // minimize: true,
+              modules: true,
+              localIdentName: '[path]_[name]_[local]--[hash:base64:5]'
+            }
+          },
+          {
+            loader: 'less-loader'
+          }
+        ]
       }
     ]
   }

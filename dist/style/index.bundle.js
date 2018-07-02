@@ -93,7 +93,7 @@
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/lib/css-base.js */ \"./node_modules/css-loader/lib/css-base.js\")(false);\n// imports\nexports.i(__webpack_require__(/*! -!../../../node_modules/css-loader??ref--5-1!./common.css */ \"./node_modules/css-loader/index.js??ref--5-1!./src/style/css/common.css\"), undefined);\n\n// module\nexports.push([module.i, \"html {\\n  background: gray;\\n}\\n\\n.src-style-css-_base_box--JtuOo {\\n  height: 200px;\\n  width: 100px;\\n  border-radius: 4px;\\n  background: #696969;\\n}\", \"\"]);\n\n// exports\nexports.locals = {\n\t\"box\": \"src-style-css-_base_box--JtuOo \" + __webpack_require__(/*! -!../../../node_modules/css-loader??ref--5-1!./common.css */ \"./node_modules/css-loader/index.js??ref--5-1!./src/style/css/common.css\").locals[\"big-box\"] + \"\"\n};\n\n//# sourceURL=webpack:///./src/style/css/base.css?./node_modules/css-loader??ref--5-1");
+eval("exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/lib/css-base.js */ \"./node_modules/css-loader/lib/css-base.js\")(false);\n// imports\nexports.i(__webpack_require__(/*! -!../../../node_modules/css-loader??ref--5-1!./common.css */ \"./node_modules/css-loader/index.js??ref--5-1!./src/style/css/common.css\"), undefined);\nexports.i(__webpack_require__(/*! -!../../../node_modules/css-loader??ref--5-1!./header.less */ \"./node_modules/css-loader/index.js??ref--5-1!./src/style/css/header.less\"), undefined);\n\n// module\nexports.push([module.i, \"html {\\n  background: gray;\\n}\\n\\n.src-style-css-_base_box--JtuOo {\\n  height: 200px;\\n  width: 100px;\\n  border-radius: 4px;\\n  background: #696969;\\n}\\n\\n.src-style-css-_base_header--1lJ7o {\\n}\", \"\"]);\n\n// exports\nexports.locals = {\n\t\"box\": \"src-style-css-_base_box--JtuOo \" + __webpack_require__(/*! -!../../../node_modules/css-loader??ref--5-1!./common.css */ \"./node_modules/css-loader/index.js??ref--5-1!./src/style/css/common.css\").locals[\"big-box\"] + \"\",\n\t\"header\": \"src-style-css-_base_header--1lJ7o \" + __webpack_require__(/*! -!../../../node_modules/css-loader??ref--5-1!./header.less */ \"./node_modules/css-loader/index.js??ref--5-1!./src/style/css/header.less\").locals[\"font\"] + \"\"\n};\n\n//# sourceURL=webpack:///./src/style/css/base.css?./node_modules/css-loader??ref--5-1");
 
 /***/ }),
 
@@ -105,6 +105,17 @@ eval("exports = module.exports = __webpack_require__(/*! ../../../node_modules/c
 /***/ (function(module, exports, __webpack_require__) {
 
 eval("exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/lib/css-base.js */ \"./node_modules/css-loader/lib/css-base.js\")(false);\n// imports\n\n\n// module\nexports.push([module.i, \"body {\\n  font-size: 26px;\\n}\\n\\n#src-style-css-_common_app--29Y1C {\\n  width: 200px;\\n  height: 200px;\\n  background: yellow;\\n}\\n\\n.src-style-css-_common_big-box--MRucX {\\n  border: 4px solid red;\\n  background: white;\\n}\", \"\"]);\n\n// exports\nexports.locals = {\n\t\"app\": \"src-style-css-_common_app--29Y1C\",\n\t\"big-box\": \"src-style-css-_common_big-box--MRucX\"\n};\n\n//# sourceURL=webpack:///./src/style/css/common.css?./node_modules/css-loader??ref--5-1");
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/index.js??ref--5-1!./src/style/css/header.less":
+/*!***********************************************************************!*\
+  !*** ./node_modules/css-loader??ref--5-1!./src/style/css/header.less ***!
+  \***********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/lib/css-base.js */ \"./node_modules/css-loader/lib/css-base.js\")(false);\n// imports\n\n\n// module\nexports.push([module.i, \"@homecolor: #ff3333;\\n\\n.src-style-css-_header_font--3Q1RB {\\n  color: @homecolor;\\n}\", \"\"]);\n\n// exports\nexports.locals = {\n\t\"font\": \"src-style-css-_header_font--3Q1RB\"\n};\n\n//# sourceURL=webpack:///./src/style/css/header.less?./node_modules/css-loader??ref--5-1");
 
 /***/ }),
 
@@ -184,7 +195,7 @@ eval("\nvar content = __webpack_require__(/*! !../../../node_modules/css-loader?
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\n\nvar _base = __webpack_require__(/*! ./css/base.css */ \"./src/style/css/base.css\");\n\nvar _base2 = _interopRequireDefault(_base);\n\nvar _common = __webpack_require__(/*! ./css/common.css */ \"./src/style/css/common.css\");\n\nvar _common2 = _interopRequireDefault(_common);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\n/** 不开启css-module的时候 样式会直接使用 */\n// import './css/base.css'\n// import './css/common.css'\n\n/** 开启css-module的时候 */\nvar app = document.getElementById('app');\n\napp.innerHTML = '<div class=\"' + _base2.default.box + '\"></div>';\n\n//# sourceURL=webpack:///./src/style/index.js?");
+eval("\n\nvar _base = __webpack_require__(/*! ./css/base.css */ \"./src/style/css/base.css\");\n\nvar _base2 = _interopRequireDefault(_base);\n\nvar _common = __webpack_require__(/*! ./css/common.css */ \"./src/style/css/common.css\");\n\nvar _common2 = _interopRequireDefault(_common);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\n// import header from './css/header.less'\n\n/** 不开启css-module的时候 样式会直接使用 */\n// import './css/base.css'\n// import './css/common.css'\n\n/** 开启css-module的时候 */\nvar app = document.getElementById('app');\n\napp.innerHTML = '<div class=\"' + _base2.default.box + '\"></div>';\n\ndocument.getElementById('header').className = _base2.default.header;\n\n//# sourceURL=webpack:///./src/style/index.js?");
 
 /***/ })
 

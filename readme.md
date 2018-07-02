@@ -1048,4 +1048,113 @@
 
    - 配置less/sass
 
+     - npm install less-loader less --save-dev
+
+     - npm install sass-loader node-sass --save-dev
+
+       ```json
+       .header {
+         composes: font from './header.less'
+       }
+       ```
+
    - 提取css代码  - 提取公共代码 做缓存 (不提取的话, 将css代码打包到了js文件中)
+
+     - extract-loader
+
+     - ExtractTextWebpackPlugin
+       - npm install extract-text-webpack-plugin --save-dev
+       ```js
+       // webpack3
+       var ExtractTextWebpackPlugin = require('ExtractTextWebpackPlugin)
+       
+       module: {
+           rules: [
+       
+               {
+                   test: /\.less$/,
+                   use: ExtractTextWebpackPlugin.extract({
+                       fallback: {
+                           // 告诉webpack, 当不提取的时候, 使用何种方式将其加载到页面中
+                           loader: 'style-loader,
+                           options: {
+                               singleton: true,
+                               // transform: ''
+                           }
+                       },
+                       use: [
+                           {loader: 'css-loader'}
+                           {loader: 'less-loader'}
+                       ], // 定义我们继续处理的loader
+                   })
+               }
+           ]
+       },
+       plugins: [
+           new ExtractTextWebpackPlugin({
+               filename: '[name].min.css', // 提取出来的css的名称
+               // 将css-loader的option中的minimize打开
+               
+               // allChunks 给插件指定一个范围, 指定提取css的范围
+               // 1. 设置为true 表示所有的引用的css文件都提取
+               // 2. 设置为false, 默认, 只会提取初始化的css(异步加载不认为是初始化)
+               allChunks:false, 
+           })
+       ]
+       // webpack3 结果: index.bundle.js app.min.css 但是打开index.html 并没有插入进去
+       
+       // webpack4 
+       {
+           test: /\.less$/,
+           use: [
+             MiniCssExtractPlugin.loader,
+             {
+               loader: 'css-loader',
+               // loader: 'file-loader'
+               options: {
+                 minimize: process.env.NODE_ENV === 'production',
+                 modules: true,
+                 localIdentName: '[path]_[name]_[local]--[hash:base64:5]'
+               }
+             },
+             {
+               loader: 'less-loader'
+             }
+           ]
+       }
+       
+        plugins: [
+           new MiniCssExtractPlugin({
+             // Options similar to the same options in webpackOptions.output
+             // both options are optional
+             filename: '[name].css',
+             chunkFilename: '[id].css'
+           })
+       ]
+       ```
+
+     - 异步引入a.js文件, 在a.js文件中引入a.less
+
+       1. 针对allChunks为false的情况
+
+          - webpack3: 生成a.bundle.js文件, css文件被当成js的一个模块被打包处理, 将css放在js文件里面, 一起被提取; css代码切分的一种方式, 将初始化加载和动态加载区分开; 借助动态加载的代码区分, 也是css-in-js的一个概念
+          - weboack4: 生成moduleA.chunk.js 和moduleA.chunk.css文件, 在index.bundle.js 包括了对于modulA.js和module.css文件的引用
+
+       2. webpack4使用splitChunks配置
+
+          ```js
+          optimization: {
+            splitChunks: {
+              cacheGroups: {
+                styles: {            
+                  name: 'styles',
+                  test: /\.scss|css$/,
+                  chunks: 'all',    // merge all the css chunk to one file
+                  enforce: true
+                }
+              }
+            }
+          }
+          ```
+
+          - 结果: 生成index.bundle.js style.chunk.js style.chunk.css 将所有的样式文件都打包进了style.chunk.css文件中
