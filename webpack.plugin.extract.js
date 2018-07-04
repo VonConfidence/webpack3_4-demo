@@ -94,7 +94,7 @@ module.exports = {
         },
         styles: {
           name: 'styles',
-          test: /\.(scss|css)$/,
+          test: /\.(scss|css|less)$/,
           chunks: 'all', // merge all css file into one
           // minChunks: 1,
           reuseExistingChunk: true,

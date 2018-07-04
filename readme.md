@@ -1157,4 +1157,55 @@
           }
           ```
 
-          - 结果: 生成index.bundle.js style.chunk.js style.chunk.css 将所有的样式文件都打包进了style.chunk.css文件中
+          - 结果: 生成index.bundle.js style.chunk.js style.chunk.css 将所有的样式文件都打包进了style.chunk.css文件中, 但是需要手动添加到项目htm中
+          - question: 为什么这里不会运行? npm run extract
+
+   - PostCss (Autoprefixer CSS-nano CSS-next)
+
+     > A tool for transforming Css With Javascript 用js去转化css的一个工具
+
+     -  联系到上一节中的css.transform.js, 但是时机是不一样的, PostCss是打包的时期, css.transform是浏览器插入到style标签中的时候
+
+     - postcss的强大, 理解成为一个处理css的工具
+
+       - 安装 npm install postcss postcss-loader autoprefixer cssnano postcss-cssnext --save-dev
+
+       - autoprefixer: 帮助加上浏览器前缀
+
+       - css-nano 帮助我们优化压缩css, 在postcss可以当做插件使用, css-loader就是用的css-nano做的压缩
+
+       - css-next 使用未来的css新语法
+
+         - css variables
+         - custom selectors 自定义选择器
+         - calc() 动态计算 ...
+
+         ```
+         {
+         	loader: 'postcss-loader',
+             options: {
+             	// require进来的插件给postcss使用的
+             	ident: 'postcss', // 表明接下来的插件是给postcss使用的
+             	plugins: [
+             		// require('autoprefixer')(),
+             		// 两个一起用cssnext 会给出警告, 提示已经包含autoprefixer
+             		require('postcss-cssnext')()
+             	]
+             }
+         },
+         ```
+
+         
+
+     - 一旦涉及到浏览器兼容性问题的时候, 一定会有针对的浏览器兼容问题, 使用browserlist, 让所有的插件都公用一份browserlist
+
+       - 可以放在package.json里面
+       - .browserlistrc 存入对浏览器的要求 
+
+     - postcss-import 插件 将@import的文件内容直接放入到当前的css文件中, 但是存过来之后要考虑相对文件路径的变化, 需要配合postcss-url来使用
+
+     - postcss-assets 在后面资源处理讲解
+
+       
+
+   - **Tree Shaking**
