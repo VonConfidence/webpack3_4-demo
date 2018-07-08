@@ -1,0 +1,60 @@
+html {
+  background: purple;
+}
+.box {
+  height: 200px;
+  width: 100px;
+  border-radius: 4px;
+  background: #696969;
+  -webkit-transition: -webkit-transform 1s;
+  transition: -webkit-transform 1s;
+  transition: transform 1s;
+  transition: transform 1s, -webkit-transform 1s;
+}
+
+body {
+  font-size: 26px;
+}
+#app {
+  height: 200px;
+  background: yellow;
+}
+.bigBox {
+  height: 400px;
+  width: 100%;
+  border: 1px solid red;
+  background: white;
+}
+.bigBox > div {
+  width: 128px;
+  height: 128px;
+  float: left;
+  border: 1px solid blue;
+  margin-left: 10px;
+}
+.bigBox .p1 {
+  background-image: url(./../../dist/filedeal/../../dist/filedeal/assets/imgs/sprites/sprite.9b181.min.png);
+  background-position: -1000px -293px;
+  background-size: 1293px 800px;
+}
+.bigBox .p2 {
+  background-image: url(./../../dist/filedeal/../../dist/filedeal/assets/imgs/sprites/sprite.9b181.min.png);
+  background-position: -1000px -361px;
+  background-size: 1293px 800px;
+}
+.bigBox .p3 {
+  background-image: url(./../../dist/filedeal/../../dist/filedeal/assets/imgs/sprites/sprite.9b181.min.png);
+  background-position: -1000px 0px;
+  background-size: 1293px 800px;
+}
+.bigBox .p4 {
+  background-image: url(./../../dist/filedeal/../../dist/filedeal/assets/imgs/sprites/sprite.9b181.min.png);
+  background-position: 0px 0px;
+  background-size: 1293px 800px;
+}
+.bigBox .p5 {
+  background-image: url(./../../dist/filedeal/../../dist/filedeal/assets/imgs/sprites/sprite.9b181.min.png);
+  background-position: 0px -400px;
+  background-size: 1293px 800px;
+}
+

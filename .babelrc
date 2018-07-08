@@ -1,9 +1,17 @@
 {
-  "presets": ["stage-0",["env", {
-    "targets": {
-      "browsers": ["> 1%", "last 2 versions"]
-    }
-  }]],
-  "plugins": [
-  ]
+  "presets": [
+    "stage-0",
+    [
+      "env",
+      {
+        "targets": {
+          "browsers": [
+            "> 1%",
+            "last 2 versions"
+          ]
+        }
+      }
+    ]
+  ],
+  "plugins": []
 }

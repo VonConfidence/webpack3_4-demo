@@ -1208,4 +1208,70 @@
 
        
 
-   - **Tree Shaking**
+   - **Tree Shaking** (摇动树?)
+
+     - webpack2.0新引进, 引申到项目, 在项目中如果有代码不再用到, 或者说是从来没有用到过, 那么项目如果在上线的时候, 如果代码中还存在, 势必造成资源的浪费; 
+
+     - 使用场景
+
+       - 常规优化(体积更小, 加载时间更快)
+       - 引入第三方库的某一个功能(lodash) 只用其中的一两个功能, 但是打包整个包造成了浪费
+
+     - TreeShaking 分为两种
+
+       - 针对项目中的js文件, JS TreeShaking (将没有用到的方法给去掉)
+
+         - 在webpack2之后 webpack会将没有用到的文件标识出来, 借助插件的帮助webpack.optimize.uglifyJs 将废弃的代码移除掉 [webpack4-demo](https://github.com/webpack/webpack/tree/master/examples/side-effects)
+
+         ```
+         // webpack 3
+         plugins: [
+         	// 将没有用到的文件删除
+             new webpack.optimize.UglifyJsPlugin({})
+         ]
+
+         // webpack3 针对lodash
+         /*
+            import func from 'lodash/set'
+            babel-plugin-lodash --save-dev
+         */
+         
+         // webpack4
+         optimization: {
+         	minimize:true
+         }
+         
+         // 同时需要修改babelrc中添加一层配置, 来开启无用的模块检测, 但是在webpack4中无效
+         {
+         	modules:false
+         }
+         // 主要通过在package.json文件中设置sideEffects: false来告诉编译器该项目或模块是pure的，可以进行无用模块删除。
+         
+         // 开发环境下, 试过很多次, 都无法进行treeShaking
+         
+         // 生产模式下, 自动识别为TreeShaking
+         ```
+
+         
+
+       - 针对项目中的css文件 CSS TreeShaking (DOM节点有各种各样的id, class等属性), 有些样式没有被匹配不上, 就不会被打包到样式中去
+
+
+
+
+
+## 资源文件的处理
+
+1. 文件的处理 - 图片处理
+   - css中引入的图片 file-loader
+   - 优化角度: 自动合成雪碧图 postcss-sprites
+     - 针对retina屏幕的处理 给potcss-sprites 添加配置 retina:true 即可
+     - 同时修改图片文件 img-name@2x.png 告诉loader是需要处理的
+     - 同时需要就空间dom设置的宽高缩小一倍
+   - 压缩图片 img-loader
+   - Base64编码 url-loader
+2. 文件处理- 字体文件 
+3. 处理第三方库
+4. 生成HTML
+5. HTML中引入图片
+6. 配合优化
