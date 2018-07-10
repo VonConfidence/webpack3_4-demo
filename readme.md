@@ -1270,8 +1270,136 @@
      - 同时需要就空间dom设置的宽高缩小一倍
    - 压缩图片 img-loader
    - Base64编码 url-loader
+
 2. 文件处理- 字体文件 
+
+   ```js
+   {
+       test: /\.(eot|woff2?|woff|ttf|svg)/,
+       use: [
+         {
+           loader: 'url-loader',
+           options: {
+             limit: 5000, // 大于5k生成文件
+             useRelativePath: true,
+             name: '[name].[hash:5].min.[ext]' // 打包后文件的名称控制
+           }
+         }
+       ]
+   }
+   ```
+
+   ```less
+   @font-face {
+     font-family: "iconfont";
+     src: url('../assets/fonts/iconfont.eot?t=1531054753224');
+     /* IE9*/
+     src: url('../assets/fonts/iconfont.eot?t=1531054753224#iefix') format('embedded-opentype'), /* IE6-IE8 */
+     url('../assets/fonts/iconfont.svg?t=1531054753224#iconfont') format('svg');
+     /* iOS 4.1- */
+   }
+   
+   .iconfont {
+     font-family: "iconfont" !important;
+     font-size: 16px;
+     font-style: normal;
+     -webkit-font-smoothing: antialiased;
+     -moz-osx-font-smoothing: grayscale;
+   }
+   
+   .icon-ke:before {
+     content: "\e604";
+   }
+   
+   .icon-fudao:before {
+     content: "\e605";
+   }
+   ```
+
+   
+
 3. 处理第三方库
+
+   1. 第三方的库在远程的cdn上
+
+   2. 在自己的项目下管理(通用的模块, 但是不需要每次都去import)
+
+   3.  上述可以通过
+
+      1. 插件的方式实现webpack.providePlugin, 在模块中注入我们需要的变量json, value就是模块的名称, 在使用的时候就是require
+
+         ```js
+         // 1. 针对使用线上cdn的情况
+         
+         // 在plugins数组中
+         new webpack.ProvidePlugin({ // npm install jquery
+               $: 'jquery' // key表示我们使用的时候的名称 $('div').addClass('new')
+         })
+         
+         // 使用的时候, 不需要import 直接使用变量即可
+         $('div').addClass('provide-class')
+         
+         // 2. 针对使用本地文件的形式
+         new webpack.ProvidePlugin({ // npm install jquery
+            // 这里的模块value必须和上面定义的alias中的key一致
+            React: 'react',
+            ReactDOM: 'react-dom'
+         })
+         
+         resolve: {
+             // 告诉webpack, 如果在node_modules中找不到的时候, 去哪里找模块
+             alias: {
+               // $表示只是将这一个ReactDOM关键字解析到某一个目录的文件下, 而不是解析到一个目录下
+               react$: path.resolve(__dirname, 'src/filedeal/libs/react.development.js'),
+               'react-dom$': path.resolve(__dirname, 'src/filedeal/libs/react.dom.development.js')
+             }
+          },
+         ```
+
+         
+
+      2. imports-loader, 通过options传参, 通过test匹配到模块
+
+         ```js
+         {
+             test: path.resolve(__dirname, 'src/app.js'),
+             use: [
+                    {
+                       loader: 'imports-loader',
+                       options: {
+                           // value会被解析, 从node_modules或者是从alias
+                           $: 'jquery'
+                       }
+                    }
+             ]
+         }
+         ```
+
+         
+
+      3. window上挂载(比较野蛮, 调试的时候可以)
+
+      4. 通过ProvidePlugin和 import直接引入区别
+
+         1. import $ from 'jquery' 引入之后，无论你在代码中是否使用jquery, 打包后, 都会打进去, 这样其实产生大量的冗余js
+
+         2. Provideplugin, 只有你在使用到此库, 才会打包 
+
+         3. 提取第三方库(或者想单独提出来的)js库, 增加一个optimization配置
+
+            ```js
+            // 在webpack3.x版本之前：使用new webpack.optimize.CommonsChunkPlugin现在已经不支持
+            new webpack.optimize.CommonsChunkPlugin({
+                name:'jquery'
+            })
+            ```
+
+            
+
+          
+
 4. 生成HTML
+
 5. HTML中引入图片
+
 6. 配合优化

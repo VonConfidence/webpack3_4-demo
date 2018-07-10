@@ -1,4 +1,5 @@
 const path = require('path')
+const webpack = require('webpack')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
@@ -12,6 +13,14 @@ module.exports = {
     publicPath: './../../dist/filedeal/',
     chunkFilename: '[name].chunk.js'
   },
+  resolve: {
+    // 告诉webpack, 如果在node_modules中找不到的时候, 去哪里找模块
+    alias: {
+      // $表示只是将这一个ReactDOM关键字解析到某一个目录的文件下, 而不是解析到一个目录下
+      react$: path.resolve(__dirname, 'src/filedeal/libs/react.development.js'),
+      'react-dom$': path.resolve(__dirname, 'src/filedeal/libs/react.dom.development.js')
+    }
+  },
   plugins: [
     new MiniCssExtractPlugin({
       // Options similar to the same options in webpackOptions.output
@@ -23,6 +32,12 @@ module.exports = {
       // 1. 设置为true 表示所有的引用的css文件都提取
       // 2. 设置为false, 默认, 只会提取初始化的css(异步加载不认为是初始化)
       allChunks: false
+    }),
+    new webpack.ProvidePlugin({ // npm install jquery
+      $: 'jquery', // key表示我们使用的时候的名称 $('div').addClass('new')
+      // 这里的模块value必须和上面定义的alias中的key一致
+      React: 'react',
+      ReactDOM: 'react-dom'
     })
   ],
   module: {
@@ -118,6 +133,19 @@ module.exports = {
               }
             }
 
+          }
+        ]
+      }, // end jpg
+      {
+        test: /\.(eot|woff2?|woff|ttf|svg)/,
+        use: [
+          {
+            loader: 'url-loader',
+            options: {
+              limit: 5000, // 大于5k生成文件
+              useRelativePath: true,
+              name: '[name].[hash:5].min.[ext]' // 打包后文件的名称控制
+            }
           }
         ]
       }
