@@ -1266,8 +1266,31 @@
    - css中引入的图片 file-loader
    - 优化角度: 自动合成雪碧图 postcss-sprites
      - 针对retina屏幕的处理 给potcss-sprites 添加配置 retina:true 即可
+
      - 同时修改图片文件 img-name@2x.png 告诉loader是需要处理的
+
      - 同时需要就空间dom设置的宽高缩小一倍
+
+       ```
+       {
+                   loader: 'postcss-loader',
+                   options: {
+                     // require进来的插件给postcss使用的
+                     ident: 'postcss', // 表明接下来的插件是给postcss使用的
+                     plugins: [
+                       // require('autoprefixer')(),
+                       require('postcss-sprites')({
+                       // 合成图片的路径
+                         spritePath: 'dist/filedeal/assets/imgs/sprites/',
+                         // retina: true, 让postcss帮助我们处理@2x屏幕的大小
+                         // 相应的位置元素大小必须是原始的一半
+                       }), // 合成精灵图
+                       require('postcss-cssnext')()
+                     ]
+                   }
+       },
+       ```
+
    - 压缩图片 img-loader
    - Base64编码 url-loader
 
@@ -1400,6 +1423,88 @@
 
 4. 生成HTML
 
-5. HTML中引入图片
+   1. 自动生成html(将配对的css, js引入) HtmlWebpackPlugin
+
+      - template 模板名称
+      - filename 指定文件名
+      - minify 指定生成的html文件是否压缩
+      - chunks 指定哪些chunk插入到html (多页面程序, a,b页面, b页面就不需要插入a页面的chunk代码 )
+      - inject script标签插入的位置(body, head, false)
+
+      ```js
+      new HtmlWebpackPlugin({
+          filename: 'index.html',
+          template: './src/html/index.html',
+          // inject: 'body', // 默认脚本插入在body尾部, 样式head尾部
+          // chunks: [] 不指定chunks会将上面所有打包的chunk嵌入到html中, 针对多页面可以配置该选项
+      })
+      ```
+
+5. HTML中引入图片 - html-loader
+
+   1. attrs: [img:src] 每一项表示一个规则, 左边标识标签, 右边是属性; 让webpack来打包
+
+   ```
+   {
+       test: /\.html$/,
+       use: [
+           {
+             loader: 'html-loader',
+             // 需要注意的是路径问题
+             options: {
+               attr: ['img:src', 'img:data-src']
+             }
+           }
+       ]
+   }
+   
+   <img src="./assets/imgs/banner_2.png" data-src="./assets/imgs/banner_2.png" alt="html-loader 打包"> <!-- 打包后在html中查看是查看不到的-->
+   
+   <img src="${require('./assets/imgs/banner_1.png')}" alt="">
+   ```
+
+   
 
 6. 配合优化
+
+   1. 场景优化(项目模板中对于图片的引用)
+
+   2. 提取公共代码(manifest运行时代码)
+
+      - 提前载入webpack加载代码 inline-manifest-webpack-plugin 将webpack生成的代码插入到html中 ([ inline-chunk-manifest-html-webpack-plugin](https://github.com/jouni-kantola/inline-chunk-manifest-html-webpack-plugin))
+      - html-webpack-inline-chunk-plugin 选择各种各样的chunk, 将其插入到html中(*)
+
+      ```js
+      new HtmlWebpackPlugin({
+          filename: 'index.html',
+          template: './src/htmlplugin/index.html',
+          // inject: 'body', // 默认脚本插入在body尾部, 样式head尾部
+          // chunks: ['index', 'runtime'], // 不指定chunks会将上面所有打包的chunk嵌入到html中 去掉这个, 避免和上面的HtmlInlineChunkPlugin冲突
+          minify: {
+            // 借助了html-minify 去压缩html
+            collapseWhitespace: true // 压缩空格(换行符删除)
+          }
+      }),
+          
+      // 注意最好放在HtmlWebpackPlugin后面, 同时去掉该插件的chunks选项
+      new HtmlInlineChunkPlugin({
+        //希望插入到html中的chunk名称 直接将其嵌入到html的标签script中, 不是在src中, 减少网络请求
+        inlineChunks: ['manifest']
+      })
+      ```
+
+      - webpack4中如何将chunk嵌入到script内联中
+
+           ```js
+           optimization: {
+               runtimeChunk: {
+                 name: 'runtime'
+               },
+           }
+
+           plugins: [
+               new InlineManifestWebpackPlugin('runtime')
+           ]
+           ```
+
+   

@@ -1,31 +1,28 @@
 const path = require('path')
 const webpack = require('webpack')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+// const HtmlInlineChunkPlugin = require('html-webpack-inline-chunk-plugin');
+
+const InlineManifestWebpackPlugin = require('inline-manifest-webpack-plugin')
 
 module.exports = {
   mode: 'development',
   entry: {
-    index: path.resolve(__dirname, 'src/filedeal/index.js')
+    index: path.resolve(__dirname, 'src/htmlplugin/index.js')
   },
   output: {
-    path: path.resolve(__dirname, 'dist/filedeal'),
-    filename: '[name].bundle.js',
-    publicPath: './../../dist/filedeal/',
+    path: path.resolve(__dirname, 'dist/htmlplugin'),
+    filename: '[name].bundle-[hash:5].js',
+    // 脚本文件中引用文件导入资源的相对路径
+    publicPath: './../../dist/htmlplugin/',
     chunkFilename: '[name].chunk.js'
-  },
-  resolve: {
-    // 告诉webpack, 如果在node_modules中找不到的时候, 去哪里找模块
-    alias: {
-      // $表示只是将这一个ReactDOM关键字解析到某一个目录的文件下, 而不是解析到一个目录下
-      react$: path.resolve(__dirname, 'src/filedeal/libs/react.development.js'),
-      'react-dom$': path.resolve(__dirname, 'src/filedeal/libs/react.dom.development.js')
-    }
   },
   plugins: [
     new MiniCssExtractPlugin({
       // Options similar to the same options in webpackOptions.output
       // both options are optional
-      filename: '[name].min.css',
+      filename: '[name].bundle-[hash:5].css',
       // 如果不指定异步加载的js文件中引入的css的chunkFileName的话, 那么会使用filename字段值
       chunkFilename: '[id].chunk.css',
       // allChunks 给插件指定一个范围, 指定提取css的范围
@@ -33,12 +30,25 @@ module.exports = {
       // 2. 设置为false, 默认, 只会提取初始化的css(异步加载不认为是初始化)
       allChunks: false
     }),
-    new webpack.ProvidePlugin({ // npm install jquery
-      $: 'jquery', // key表示我们使用的时候的名称 $('div').addClass('new')
-      // 这里的模块value必须和上面定义的alias中的key一致
-      React: 'react',
-      ReactDOM: 'react-dom'
-    })
+
+    new HtmlWebpackPlugin({
+      filename: 'index.html',
+      template: './src/htmlplugin/index.html',
+      // inject: 'body', // 默认脚本插入在body尾部, 样式head尾部
+      // chunks: ['index', 'runtime'], // 不指定chunks会将上面所有打包的chunk嵌入到html中 去掉这个, 避免和上面的HtmlInlineChunkPlugin冲突
+      minify: {
+        // 借助了html-minify 去压缩html
+        collapseWhitespace: true // 压缩空格(换行符删除)
+      }
+    }),
+
+    new InlineManifestWebpackPlugin('runtime')
+
+    // new HtmlInlineChunkPlugin({
+    //   // 希望插入到html中的chunk名称 直接将其嵌入到html的标签script中, 不是在src中, 减少网络请求
+    //   inlineChunks: ['manifest']
+    // })
+
   ],
   module: {
     rules: [
@@ -48,7 +58,7 @@ module.exports = {
           loader: 'babel-loader'
         },
         exclude: '/node-modules/'
-      },
+      }, // end js
       {
         test: /\.css$/,
         use: [
@@ -72,7 +82,7 @@ module.exports = {
             }
           }
         ]
-      },
+      }, // end css
       {
         test: /\.less$/,
         use: [
@@ -95,7 +105,7 @@ module.exports = {
               plugins: [
                 // require('autoprefixer')(),
                 require('postcss-sprites')({
-                  spritePath: 'dist/filedeal/assets/imgs/sprites/'
+                  spritePath: 'dist/htmlplugin/assets/imgs/sprites/'
                 }), // 合成精灵图
                 require('postcss-cssnext')()
               ]
@@ -109,14 +119,6 @@ module.exports = {
       {
         test: /\.(png|jpg|jpeg|gif)$/,
         use: [
-          // {
-          //   loader: 'file-loader',
-          //   options: {
-          //     // 配置路径  webpack3 还需要配置 outputPath: 'dist', publicPath: '',目录下, 不然放在了根路径下assets目录
-          //     useRelativePath: true // 放到了dist/assets/ 目录下面
-          //     // outputPath: '' // 定义文件存放的位置, 默认是在dist/路径下
-          //   }
-          // }
           {
             loader: 'url-loader',
             options: {
@@ -150,13 +152,24 @@ module.exports = {
             }
           }
         ]
-      }
+      }, // end font
+      {
+        test: /\.html$/,
+        use: [
+          {
+            loader: 'html-loader',
+            // 需要注意的是路径问题
+            options: {
+              attr: ['img:src', 'img:data-src']
+            }
+          }
+        ]
+      } // end html
     ]
-  }
-  /*
+  }, // end module
   optimization: {
     runtimeChunk: {
-      name: 'manifest'
+      name: 'runtime'
     },
     // minimize: true, // [new UglifyJsPlugin({...})]
     splitChunks: {
@@ -186,5 +199,4 @@ module.exports = {
       }
     }
   } // end optimization
-  */
 }
