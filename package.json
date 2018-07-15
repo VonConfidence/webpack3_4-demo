@@ -15,7 +15,9 @@
     "tree": "webpack --config webpack.config.tree.js",
     "filedeal": "webpack --config webpack.config.filedeal.js",
     "html": "webpack --config webpack.config.html.js",
-    "htmlinlinechunk": "webpack --config webpack.plugin.htmlinlinechunk.js"
+    "htmlinlinechunk": "webpack --config webpack.plugin.htmlinlinechunk.js",
+    "watchmode": "webpack --watch --progress --color --display-reasons --config webpack.dev.watchmode.js",
+    "devserver": "webpack-dev-server --open --config webpack.dev.devserver.js"
   },
   "sideEffects": false,
   "devDependencies": {
@@ -25,6 +27,7 @@
     "babel-plugin-transform-runtime": "6.23.0",
     "babel-preset-env": "1.7.0",
     "babel-preset-stage-0": "6.24.1",
+    "clean-webpack-plugin": "0.1.19",
     "css-loader": "0.28.11",
     "cssnano": "4.0.0",
     "file-loader": "1.1.11",

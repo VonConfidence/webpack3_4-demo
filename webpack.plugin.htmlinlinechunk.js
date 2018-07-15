@@ -9,13 +9,13 @@ const InlineManifestWebpackPlugin = require('inline-manifest-webpack-plugin')
 module.exports = {
   mode: 'development',
   entry: {
-    index: path.resolve(__dirname, 'src/htmlplugin/index.js')
+    index: path.resolve(__dirname, 'src/watchmode/index.js')
   },
   output: {
-    path: path.resolve(__dirname, 'dist/htmlplugin'),
+    path: path.resolve(__dirname, 'dist/watchmode'),
     filename: '[name].bundle-[hash:5].js',
     // 脚本文件中引用文件导入资源的相对路径
-    publicPath: './../../dist/htmlplugin/',
+    publicPath: './../../dist/watchmode/',
     chunkFilename: '[name].chunk.js'
   },
   plugins: [
@@ -33,7 +33,7 @@ module.exports = {
 
     new HtmlWebpackPlugin({
       filename: 'index.html',
-      template: './src/htmlplugin/index.html',
+      template: './src/watchmode/index.html',
       // inject: 'body', // 默认脚本插入在body尾部, 样式head尾部
       // chunks: ['index', 'runtime'], // 不指定chunks会将上面所有打包的chunk嵌入到html中 去掉这个, 避免和上面的HtmlInlineChunkPlugin冲突
       minify: {
@@ -43,11 +43,6 @@ module.exports = {
     }),
 
     new InlineManifestWebpackPlugin('runtime')
-
-    // new HtmlInlineChunkPlugin({
-    //   // 希望插入到html中的chunk名称 直接将其嵌入到html的标签script中, 不是在src中, 减少网络请求
-    //   inlineChunks: ['manifest']
-    // })
 
   ],
   module: {
@@ -105,7 +100,7 @@ module.exports = {
               plugins: [
                 // require('autoprefixer')(),
                 require('postcss-sprites')({
-                  spritePath: 'dist/htmlplugin/assets/imgs/sprites/'
+                  spritePath: 'dist/watchmode/assets/imgs/sprites/'
                 }), // 合成精灵图
                 require('postcss-cssnext')()
               ]

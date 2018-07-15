@@ -1507,4 +1507,155 @@
            ]
            ```
 
+
+
+# 第二节: 搭建开发环境
+
+## Webpack Watch Mode
+
+1.  不会产生一个web服务器, 只是监听文件的变化 webpack --watch (webpack -w)
+
+2. CleanWebpackPlugin 打包之前清除之前打包的文件
+
+   ````
+   // 每次打包都需要清除的目录
+   plugins: [
+     	new CleanWebpackPlugin(['dist/watchmode'])   
+   ]
+   ````
+
    
+
+3. webpack --watch --progress --color --display-reasons --config webpack.dev.watchmode.js 
+
+
+
+##  WebPack DevServer
+
+1. 文件变化的时候, 网页自动更新, 热加载机制; 或者启动服务的时候自动打开浏览器; 做一些远程接口的请求, 代理等
+
+2. live-reloading 文件发生变化的时候, 自动刷新
+   1. 不会出现打包的文件: 文件在dist是不存在的, 是在内存中 -- 只是帮助我们启动一个开发服务器, 做本地调试与开发
+
+3. 路径重定向: 网站中链接的地址配置的是线上的, 但是本地是html的地址, 就需要路径的重定向了, 将本地的html路径切换成线上的同样的路径
+
+4. 支持HTTPS
+
+5. 浏览器中显示编译的错误
+
+6. 接口代理(localhost请求远端接口, 存在跨域, 所以可以使用proxy)
+
+7. 模块热更新(live-reloading不一样, 不刷新浏览器的情况下, 更新代码, 局部更新)
+
+8. 如何配置devServer字段
+
+   1. inline设定是否使用iframe或者指定inline的方式去执行devServer
+
+   2. contentBase 提供内容路径 (内容是静态的就需要指定, 编译的内容在内存中, 直接就可以访问到), 不指定就是当前的publicPath
+
+   3. port指定端口
+
+      1. historyApiFallback html5 history指定fallback规则,. 访问路径不会导致404. 让页面很方便做服务端渲染
+
+      ```
+      const devServer = {
+          port: 9001,
+          inline: false, // 浏览器查看打包进度
+          // historyApiFallback: true, // 单页面使用hash#, 可以改变历史的记录, 即时一个路径, 当本地的没有文件的时候, 会报404错误
+          // 简单来说: http://localhost:9001/webpack-dev-server/tets1/2/3 不会报404
+          historyApiFallback: {
+            // 引用了第三放依赖的包: connect-histroy-callback
+            rewrites: [
+              {
+                from: '/pagesA',
+                to: '/src/devserver/pageA.html'
+              }, {
+                // 正则匹配, /a/b 则访问/a/b.html, 对本地请求rewrite
+                from: /^\/([a-zA-Z0-9]+\/?)([a-zA-Z0-9]+)/,
+                to(context) {
+                  return '/' + context.match[1] + context.match[2] + '.html'
+                }
+              }
+            ]
+          }
+        },
+      }
+      ```
+
+      
+
+   4. https 证书
+
+   5. proxy指定远程接口代理 集成http-proxy-middleware
+
+      - target: 指定代理的地址
+      - changeOrigin: 改变源DOM的url (虚拟的主机上比较重要, 默认是false), 调试的时候搞成true
+      - headers 增加http请求的头部 (比如携带自己的cookie, UA等)
+      - logLevel 帮助调试 在terminal中显示代理的情况
+      - pathRewrite 重定向一个接口的请求, 远程是一个很复杂的地址, 可以rewrite成为一个简单的地址
+
+      ```
+      proxy: {
+            '/api': {
+              target: 'https://cnodejs.org', // https会表示证书无效
+              changeOrigin: true, // 如果此项不设置, 那么请求就会报错
+              logLevel: 'debug' // 设置查看详细的代理信息
+            },
+            '/cgi-bin': {
+              target: 'https://fudao.qq.com/',
+              changeOrigin: true,
+              headers: {
+                origin: 'https://fudao.qq.com/pc/course.html',
+                referer: 'https://fudao.qq.com/pc/course.html?course_id=12748',
+                dnt: 1,
+                'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                cookie: '登录辅导的cookie, 在cookie没有过期的情况下'
+              }
+            },
+            '/': {
+              target: 'https://cnodejs.org', // https会表示证书无效
+              changeOrigin: true, // 如果此项不设置, 那么请求就会报错
+              pathRewrite: {
+                '^/topics': '/api/v1/topics'
+              }
+            }
+          }
+      ```
+
+      
+
+   6. hot打开, 支持模块热更新(在某个事件内,  将所需要替换的代码替换掉, 提供一个钩子, 在钩子触发的时候, 进行一些代码替换的操作)
+
+      1. 在浏览器不刷新的情况下更新前端的代码
+      2. 优点: (官方总结)
+         - 保持应用的数据状态(组件的状态, 请求数据)
+         - 节省调试时间
+         - 样式调试很快
+      3. devServer已经集成该功能, 
+         - hot:true
+         - 同时webpack.HotModuleReplacementPlugin
+         - 清晰查看模块的相对路径webpack.NamedModulesPlugin
+         - 需要写一些代码, 通过module.hot, module.hot.accept(dep, depCallback)
+           - 在更改样式的时候, style-loader会处理热更新所需要的操作, 在不写module也会自动更新
+           - js - React, Vue都有一些相关的loader, 会帮助进行相关代码的插入, 很自然的处理热更新
+           - 原生js: 需要写一些代码支持热更新
+           - 还有一些其他的API, module.hot.decline([]) 等, 有兴趣可以去官网上看下
+         - 需要注意的是: 如果使用MiniCssExtractPlugin, 在修改样式的时候, 不会自动刷新, 需要自己去主动刷新浏览器, 因为这里将css样式单独提取出来成为一个文件
+
+   7. openpage 指定devServer最先打开的是哪一个页面
+
+   8. lazy 让webpack在刚开始启动的时候打包任何东西, 当访问某些内容的时候才去打包编译该页面依赖, 在多页面应用中应该非常的有用, 当同时打开20多个页面的时候, webpack打包的时候非常的慢, 但是只访问一个的时候,   lazy打包就会快很多了
+
+   9. overlay遮罩, 提供一个错误提示, 在打开的页面中打开一个遮罩, 在遮罩中给出编译错误的提示 (在页面中直接查看错误, 不用再命令行中查看)
+
+   ```
+   
+   ```
+
+   
+
+
+
+## Express + webpack-dev-middleware
+
+1. 让开发者更加灵活和自由定制所想要的服务
