@@ -1648,11 +1648,57 @@
 
    9. overlay遮罩, 提供一个错误提示, 在打开的页面中打开一个遮罩, 在遮罩中给出编译错误的提示 (在页面中直接查看错误, 不用再命令行中查看)
 
-   ```
-   
-   ```
+9. 开启SourceMap调试
 
-   
+   1. 很多代码都是转化过的, 用typescipt, es6, 和浏览器中的代码不是一致的, 经过编译后的调试非常困难
+   2. sourceMap 将生成的代码和原始代码做一个映射
+   3. 开启devTool 值有七个, 每一种的使用场景和打包速度都是不一样的 
+      1. 开发环境下有四个
+         - eval
+         - eval-source-map
+         - cheap-eval-source-map
+         - cheap-module-eval-source-map
+      2. 开发环境下有三个- 用于开发调试, 线上bug
+         - source-map
+         - hidden-source-map
+         - nosource-source-map
+      3. css调试的时候 还需要开启css-loader.option.sourcemap, less-loader.option.sourcemap等
+         - 如果看不到行号和详情的话, 去掉singleton:true 选项设置 (singleton:true将引用的css放在一个style标签下)
+      4. 最重要的是开发的时候如何选择: 
+         1. 讲究重新编译的速度
+         2. 指向代码文件名称和行数 方便调试
+         3.  开发的时候选择: cheap-module-source-map 一点损耗性能, 但是能有提示信息, 虽然刚开始的时候编译的时候可能会慢一些, 但是在此编译的时候会比较快
+         4. 如果是比较清晰的数据的话, 可以采用source-map
+   4. 插件的形式 webpack.SourceMapDevToolPlugin. webpack.EvalSourceMapDevToolPlugin 更加灵活
+
+10. `ESLint检查代码格式` 在代码修改的时候, 检查我们的代码风格
+
+    1.  使编译不通过, 必须修改为标准规范webpack才会编译成功
+    2. 安装eslint eslint-loader eslint-plugin-html(在html script标签中使用js的时候检测) eslint-friendly-formatter 报错的时候输出的格式控制 (错误和警告的输出格式)
+    3. 配置eslint
+       1. Javascript Standard Style
+       2. eslint-config-standard
+       3. eslint-plugin-promise
+       4. eslint-plugin-standard
+       5. eslint-plugin-import
+       6. eslint-plugin-node
+       7. 当然我们的IMweb eslint-config-imweb
+    4. eslint-loader
+       1. options.failOnWarning:true 当代码和规则有警告的话, 就不会通过编译
+       2. options.failOnError:true
+       3. formmater 设置第三方友好提示的formmater
+       4. options.outputReport 输出代码检查的报告
+       5. 在浏览器上看到代码风格检查, 可以设置devServer.overlay:true
+
+11. 开发环境和生产环境的区分
+
+    1. 开发环境 (模块热更新, sourceMap, 接口代理, 代码规范检查)
+    2. 生产环境(提取公共代码, 压缩混淆, 文件压缩或者Base64编码, TreeShaking去除无用代码)
+    3. 共同点: 同样的入口文件, 同样的代码处理loader, 同样的解析配置(保持开发和生产的一致性)
+    4. 区分开发环境和生产环境(流氓的写法: 两个配置文件赋值粘贴), 优雅的用法: webpack-merge 合并配置文件
+       1. webpack.dev.conf.js
+       2. webpack.prod.conf.js
+       3. webpack.base.conf.js
 
 
 
