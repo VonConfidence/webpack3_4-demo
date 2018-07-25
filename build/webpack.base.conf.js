@@ -10,16 +10,15 @@ const generateConfig = (env) => {
     {
       loader: 'babel-loader',
     },
-  ].concat(env === 'production'
-    ? []
-    : [
-      {
-        loader: 'eslint-loader',
-        options: {
-          formatter: require('eslint-friendly-formatter'),
-        },
+  ]
+  if (env === 'development') {
+    scriptLoader.push({
+      loader: 'eslint-loader',
+      options: {
+        formatter: require('eslint-friendly-formatter'),
       },
-    ])
+    })
+  };
 
   const cssLoaders = [
     {
@@ -56,7 +55,8 @@ const generateConfig = (env) => {
       },
     },
   ]
-  const styleLoader = env === 'production'
+
+  env === 'production'
     ? cssLoaders.unshift(MiniCssExtractPlugin.loader)
     : cssLoaders.unshift({
       loader: 'style-loader',
@@ -64,10 +64,11 @@ const generateConfig = (env) => {
         sourceMap: true,
         // insertInto: '#app', // 将style标签插入到 #app dom下
         singleton: true, // 将引用的css放在一个style标签下
-        transform: '../src/style/css.transform.js', // css变形的函数
+        // transform: '../src/style/css.transform.js', // css变形的函数
       },
     // loader: 'style-loader/url' // 生成的css放在link标签
     })
+  const styleLoader = cssLoaders
   /*
   const fileLoader = env === 'development' ? [
     {
@@ -128,7 +129,7 @@ const generateConfig = (env) => {
 
       new HtmlWebpackPlugin({
         filename: 'index.html',
-        template: '../src/devserver/index.html',
+        template: './src/devserver/index.html',
         // inject: 'body', // 默认脚本插入在body尾部, 样式head尾部
         // chunks: ['index', 'runtime'], // 不指定chunks会将上面所有打包的chunk嵌入到html中 去掉这个, 避免和上面的HtmlInlineChunkPlugin冲突
         minify: {
@@ -139,83 +140,84 @@ const generateConfig = (env) => {
 
     ],
     module: {
-      rules: [ {
-        test: /\.js$/,
-        use: scriptLoader,
-        exclude: '/node-modules/',
-      }, // end js
-      {
-        test: /\.css$/,
-        use: [ {
-          loader: 'style-loader',
-          options: {
-            sourceMap: true,
-            // insertInto: '#app', // 将style标签插入到 #app dom下
-            singleton: true, // 将引用的css放在一个style标签下
-            transform: '../src/style/css.transform.js', // css变形的函数
-          },
-        // loader: 'style-loader/url' // 生成的css放在link标签
-        },
+      rules: [
         {
-          loader: 'css-loader',
-          // loader: 'file-loader'
-          options: {
-            sourceMap: true,
-            // publicPath: '../', // 无效
-            // minimize: true,
-            modules: true,
-            // localIdentName: '[path]_[name]_[local]--[hash:base64:5]'
-            localIdentName: '[local]',
-          },
-        },
-        ],
-      }, // end css
-      {
-        test: /\.less$/,
-        use: styleLoader,
-      },
-      {
-        test: /\.(png|jpg|jpeg|gif)$/,
-        use: [ {
-          loader: 'url-loader',
-          options: {
-            limit: 50000, // 小于50k的话, 打包成为base64
-            useRelativePath: true,
-            // outputPath: 'dist',
-            name: '[name].[hash:5].min.[ext]', // 打包后文件的名称控制
-          },
-        },
+          test: /\.js$/,
+          use: scriptLoader,
+          exclude: '/node-modules/',
+        }, // end js
         {
-          loader: 'img-loader', // 帮助压缩图片
-          options: {
-            pngquant: {
-              quality: 80,
+          test: /\.css$/,
+          use: [ {
+            loader: 'style-loader',
+            options: {
+              sourceMap: true,
+              // insertInto: '#app', // 将style标签插入到 #app dom下
+              singleton: true, // 将引用的css放在一个style标签下
+              transform: '../src/style/css.transform.js', // css变形的函数
+            },
+            // loader: 'style-loader/url' // 生成的css放在link标签
+          },
+          {
+            loader: 'css-loader',
+            // loader: 'file-loader'
+            options: {
+              sourceMap: true,
+              // publicPath: '../', // 无效
+              // minimize: true,
+              modules: true,
+              // localIdentName: '[path]_[name]_[local]--[hash:base64:5]'
+              localIdentName: '[local]',
             },
           },
+          ],
+        }, // end css
+        {
+          test: /\.less$/,
+          use: styleLoader,
         },
-        ],
-      }, // end jpg
-      {
-        test: /\.(eot|woff2?|woff|ttf|svg)/,
-        use: [ {
-          loader: 'url-loader',
-          options: {
-            limit: 5000, // 大于5k生成文件
-            useRelativePath: true,
-            name: '[name].[hash:5].min.[ext]', // 打包后文件的名称控制
+        {
+          test: /\.(png|jpg|jpeg|gif)$/,
+          use: [ {
+            loader: 'url-loader',
+            options: {
+              limit: 50000, // 小于50k的话, 打包成为base64
+              useRelativePath: true,
+              // outputPath: 'dist',
+              name: '[name].[hash:5].min.[ext]', // 打包后文件的名称控制
+            },
           },
-        }, ],
-      }, // end font
-      {
-        test: /\.html$/,
-        use: [ {
-          loader: 'html-loader',
-          // 需要注意的是路径问题
-          options: {
-            attr: [ 'img:src', 'img:data-src', ],
+          {
+            loader: 'img-loader', // 帮助压缩图片
+            options: {
+              pngquant: {
+                quality: 80,
+              },
+            },
           },
-        }, ],
-      }, // end html
+          ],
+        }, // end jpg
+        {
+          test: /\.(eot|woff2?|woff|ttf|svg)/,
+          use: [ {
+            loader: 'url-loader',
+            options: {
+              limit: 5000, // 大于5k生成文件
+              useRelativePath: true,
+              name: '[name].[hash:5].min.[ext]', // 打包后文件的名称控制
+            },
+          }, ],
+        }, // end font
+        {
+          test: /\.html$/,
+          use: [ {
+            loader: 'html-loader',
+            // 需要注意的是路径问题
+            options: {
+              attr: [ 'img:src', 'img:data-src', ],
+            },
+          }, ],
+        }, // end html
       ],
     }, // end module
   }

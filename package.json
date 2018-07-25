@@ -19,7 +19,8 @@
     "watchmode": "webpack --watch --progress --color --display-reasons --config webpack.dev.watchmode.js",
     "devserver": "webpack-dev-server --open --config webpack.dev.devserver.js",
     "dev": "webpack-dev-server --env development --open --config build/webpack.base.conf.js",
-    "build": "webpack-dev-server --env production --open --config build/webpack.base.conf.js"
+    "build": "webpack-dev-server --env production --open --config build/webpack.base.conf.js",
+    "start": "node build/server.js"
   },
   "sideEffects": false,
   "devDependencies": {
@@ -30,6 +31,7 @@
     "babel-preset-env": "1.7.0",
     "babel-preset-stage-0": "6.24.1",
     "clean-webpack-plugin": "0.1.19",
+    "connect-history-api-fallback": "1.5.0",
     "css-loader": "0.28.11",
     "cssnano": "4.0.0",
     "eslint": "5.2.0",
@@ -41,13 +43,16 @@
     "eslint-plugin-node": "7.0.1",
     "eslint-plugin-promise": "3.8.0",
     "eslint-plugin-standard": "3.1.0",
+    "express": "4.16.3",
     "file-loader": "1.1.11",
     "html-loader": "0.5.5",
     "html-webpack-inline-chunk-plugin": "1.1.1",
     "html-webpack-plugin": "3.2.0",
+    "http-proxy-middleware": "0.18.0",
     "img-loader": "3.0.0",
     "inline-manifest-webpack-plugin": "4.0.0",
     "mini-css-extract-plugin": "0.4.1",
+    "opn": "5.3.0",
     "postcss": "6.0.23",
     "postcss-cssnext": "3.1.0",
     "postcss-loader": "2.1.5",
@@ -58,7 +63,9 @@
     "url-loader": "1.0.1",
     "webpack": "4.12.0",
     "webpack-cli": "3.0.8",
+    "webpack-dev-middleware": "3.1.3",
     "webpack-dev-server": "3.1.4",
+    "webpack-hot-middleware": "2.22.3",
     "webpack-merge": "4.1.3"
   },
   "dependencies": {

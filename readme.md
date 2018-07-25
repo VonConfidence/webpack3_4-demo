@@ -1704,4 +1704,38 @@
 
 ## Express + webpack-dev-middleware
 
-1. 让开发者更加灵活和自由定制所想要的服务
+1. 让开发者更加灵活和自由定制所想要的服务 (自定义输出信息, 使用中间件帮助我们开发)
+
+2. Express(koa) webpack-dev-middleware webpack-hot-middleware(模块热更新) http-proxy-middleware(代理) connect-history-api-fallback(地址write)  opn(在命令行中打开浏览器的一个页面)
+
+   ```javascript
+   // 启动express
+   const app = express()
+   const port = 3000
+   
+   // 获取开发环境下的配置文件
+   const config = require('../webpack.dev.devserver')
+   
+   // webpack处理 执行配置
+   const complier = webpack(config) // 给express使用
+   
+   for (let context in proxyTable) {
+     // 让每一个代理都通过proxyMiddleware
+     app.use(proxyMiddleware(context, proxyTable[context]))
+   }
+   
+   app.use(historyApiFallback(historyFallback))
+   
+   app.use(webpackDevMiddleware(complier, {
+     publicPath: config.output.publicPath,
+   }))
+   
+   app.use(webpackHotMiddleware(complier))
+   
+   app.listen(port, () => {
+     console.log('success listen to:', port)
+     opn('http://localhost:' + port)
+   })
+   ```
+
+   
