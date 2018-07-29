@@ -1,4 +1,4 @@
-## 背景
+##   背景
 1. webpack如何诞生?
     - github: @sokra  Java开发 GWT(Google Web Toolkit) 作者很喜欢这个功能
     - 提供pull request, 将自己的修改提供到别人的修改中, 别人并没有接受
@@ -1738,4 +1738,222 @@
    })
    ```
 
+
+
+
+
+
+# 第三节:  webpack打包分析
+
+## 打包结果分析
+
+1. 官方分析工具 (看到chunk信息, 给出优化建议)
+
+   ```
+   ## mac下
+   webpack --profile --json > stats.json
+   ## windows
+   webpack --profile --json | Out-file 'stats.json' -Encoding OEM
    
+   ## 文件上传到 http://webpack.github.io/analyse/
+   ```
+
+   - 官方优化方案: http://webpack.github.io/analyse/#hints 给出优化角度
+
+   - Long module build chains 引用路径过长
+   - Multiple references to the same module 多次引用一个模块, 修改代码
+
+2. webpack-bundle-analyzer 可视化查看模块的打包机制, 分析打包和优化
+
+   ```js
+   // 插件的形式
+   
+   
+   // 命令行的形式 (引用之前生成的json文件)
+      webpack-bundle-analyzer stats.json
+   
+   // stat.json
+   // 告诉我们有没有错误, 有没有警告, 以及版本, hash, 打包出来chunk的名称等
+   // 上传到 http://webpack.github.io/analyse/
+   ```
+
+   1. 打包信息: hash, version, chunks(唯一id, 根据打包顺序分配的chunkid, 代码有可能根据顺序的不同而变化), chunkname(通过动态import, magic-commons动态指定)
+   2. 黄色的标记: 表示文件过大
+   3. 查看模块的信息: webpack --display-modules [0-n] 表示的是模块的id, 可以和chunk的id理解一样, webpack根据代码的顺序, 给每一个模块表上一个id, 当引用顺序发生变化的时候也会发生变化
+
+
+
+##  打包速度优化
+
+1.  影响打包速度因素
+   1. 同时解析编译打包的文件比较多
+   2. 依赖比较多
+   3. 页面也比较多
+   4. 其他: 使用loader的方式, 范围
+2. 办法1:
+   1. 分开vendor和app (分离第三方代码vnedor和业务代码app) 第三方代码修改的比较少 业务代码修改比较多
+   2. 分开是不够的, 每次仍然还会去打包vendor, 使用插件Dllplugin和DllReferencePlugin插件
+   3. 使用Dllplugin 会生成map, 即一一对应的映射关系, 会在打包业务代码的时候引用这个映射关系, 在引用这些库的时候, webpack告诉编译器说不用打包, 这些包已经打包好了, 直接使用即可, 提高打包的速度
+3. 办法2:
+   1. UglifyJsPlugin 上线之前压缩和混淆, 这是一个非常耗时的工作, 直接支持parallel, 平行处理; 
+   2. 使用cache缓存
+4. 办法3
+   1. 使用HappyPack ,让文件在处理的时候, 把所有串行的工作变成并行
+   2. 给loader使用的, 使loader并行的去处理文件
+   3. 有一个线程池的概念 HappyPack.ThreadPool 共享文件之间的线程
+5. 办法4
+   1. babel-loader babel在编译的时候也是非常消耗时间的,
+   2. 开启options.cacheDirectory 开启缓存
+   3. 开启include exclude, 规定打包的范围
+6. 其他因素
+   1. 减少resolve (减少webpack模块的查找时间)
+   2. devtool: 去除sourcemap, 生成sourcemap 也会消耗一定的时间, 在上线的时候考虑将其干掉
+   3. cache-loader 将所有loader处理的结果缓存起来使用
+   4. 最实用的方法: 升级node  升级webpack
+
+## 针对Vue-Cli项目webpack3
+
+1. 默认的打包速度的6000ms多
+
+2. 引入element-ui后的打包速度12771ms
+
+3. 使用dll打包方式 (webpack.conf.dl.js)
+
+   ```js
+   const path = require('path');
+   const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+   const webpack = require('webpack');
+   
+   module.exports = {
+     entry: {
+       vue: ['vue', 'vue-router'],
+       ui: ['element-ui'],
+     },
+     output: {
+       path: path.resolve(__dirname, '../src/dll'),
+       filename: '[name].dll.js',
+       library: '[name]', // 告诉引用的包, 引用第三方包的形式, 如果不适用library就会产生一个全局变量
+     },
+     plugins: [
+       // 告诉webpack 如何去打包dll
+       new webpack.DllPlugin({
+         // 不能放在dist目录下, 因为dist目录下面的是每一次build都会打包生成的, 而这里的不是每一次都需要打包生成的, 因为不会改变
+         path: path.resolve(__dirname, '../src/dll', '[name]-manifest.json'), // 就是上面所讲的map映射
+         name: '[name]',
+       }),
+       new UglifyJsPlugin({
+         uglifyOptions: {
+           compress: {
+             warnings: false,
+           },
+         },
+         // parallel: true,
+       }),
+     ],
+   };
+   
+   // 首先对该配置进行一次打包 webpack --config build/webpack.conf.dll.js
+   ```
+
+   - 生成ui.manifset.json ui.dll.js 和 vue.manifset.json vue.dll.js 这两个json非常关键, 告诉业务代码如何引用第三方类库
+
+     ```js
+     // webpack.prod.conf.js
+     // 使用dll形式引用 第三方已经打包好的类库
+     new webpack.DllReferencePlugin({
+     	manifest: require('../src/dll/ui-manifest.json'),
+     }),
+     new webpack.DllReferencePlugin({
+     	manifest: require('../src/dll/vue-manifest.json'),
+     }),
+     ```
+
+     - 最终打包的一个消耗时间是在5199ms, 节约了50%左右的时间
+
+4. 在上述方式的基础上使用parallel, 同时去掉sourcemap (修改config productionSourceMap:false)
+
+   ```js
+   new UglifyJsPlugin({
+         uglifyOptions: {
+           compress: {
+             warnings: false,
+           },
+         },
+         // sourceMap: config.build.productionSourceMap,
+         sourceMap: false,
+         parallel: true,
+         cache: true,
+   }),
+   // 最终的一个打包时间为3002ms
+   ```
+
+5. 减少babel-loader的范围
+
+   ```js
+   {
+           test: /\.js$/,
+           loader: 'babel-loader',
+           // client是在开发环境中使用的, 减少include的范围
+           include: [resolve('src')],
+           // include: [resolve('src'), resolve('test'), resolve('node_modules/webpack-dev-server/client')],
+         },
+   // 最终的一个打包速度 2781ms
+   ```
+
+6. happypack (npm install happy-pack --save-dev)
+
+   1. happy是一个loader, 让我们的loader并行处理, 使我们的处理非常快, 当文件非常小的时候比明显, 未必如同想象中的一样
+   2. (因为业务代码量比较少)未必会带来很好的效益 (4063ms)
+
+   ```
+   // webpack.prod.conf.js plugins中
+   // 实例化HappyPack
+       new HappyPackPlugin({
+         // 此id供 base.conf中的happypack使用
+         id: 'vue',
+         // 进程实际处理的loader
+         loaders: [{
+           loader: 'vue-loader',
+           option: vueLoaderConfig,
+         }],
+   
+       }),
+   
+   // webpack.base.conf.js  module.rules中
+   {
+           test: /\.js$/,
+           loader: 'babel-loader',
+           // client是在开发环境中使用的, 减少include的范围
+           include: [resolve('src')],
+           // include: [resolve('src'), resolve('test'), resolve('node_modules/webpack-dev-server/client')],
+   },
+   ```
+
+   
+
+7. 原则
+
+   1. 让webpack并行处理可以并行处理的任务	 uglifyJsPlugin和 HappyPack
+   2. 尽可能减少webpack的打包任务, 通过分离第三方和我们的业务, 使用babel限定打包范围, 同时尽可能的利用缓存
+
+
+
+## 长缓存优化
+
+1. 什么是长缓存优化
+
+
+
+# 总结
+
+1. webpack工程化总结
+   1. 实时编译的服务
+   2. 好的开发服务
+   3. 自动优化
+2. 思想
+   1. 一切皆为模块
+   2. 急速的调试响应速度(HMR)
+   3. 优化应该自动完成(当我们设置一些配置后)
+3. webpack4
+   1. 零配置(主流配置)
+   2. 更快更小
