@@ -1,6 +1,6 @@
 ##   背景
 1. webpack如何诞生?
-    - github: @sokra  Java开发 GWT(Google Web Toolkit) 作者很喜欢这个功能
+    - github: @sokra Tobias  Java开发 GWT(Google Web Toolkit) 作者很喜欢这个功能
     - 提供pull request, 将自己的修改提供到别人的修改中, 别人并没有接受
     - Instagram 包容了weboack  由Instagram维护
 
@@ -700,7 +700,7 @@
     - 针对单入口的commonChunksPlugin = 并没有将公共部分打包, 只有针对多入口才会
 
     - 多入口文件的时候
-        ```
+        ```js
         entry: {
           pageA: path.resolve(__dirname, 'src/cmp', 'pageA'),
           pageB: path.resolve(__dirname, 'src/cmp', 'pageB')
@@ -1210,7 +1210,7 @@
 
    - **Tree Shaking** (摇动树?)
 
-     - webpack2.0新引进, 引申到项目, 在项目中如果有代码不再用到, 或者说是从来没有用到过, 那么项目如果在上线的时候, 如果代码中还存在, 势必造成资源的浪费; 
+     - webpack2.0新引进,  **基本概念**:引申到项目, 在项目中如果有代码不再用到, 或者说是从来没有用到过, 那么项目如果在上线的时候, 如果代码中还存在, 势必造成资源的浪费; 
 
      - 使用场景
 
@@ -1229,7 +1229,7 @@
          	// 将没有用到的文件删除
              new webpack.optimize.UglifyJsPlugin({})
          ]
-
+         
          // webpack3 针对lodash
          /*
             import func from 'lodash/set'
@@ -1256,7 +1256,164 @@
 
        - 针对项目中的css文件 CSS TreeShaking (DOM节点有各种各样的id, class等属性), 有些样式没有被匹配不上, 就不会被打包到样式中去
 
+   - TreeShaking 浅析
 
+     - webpack 本身并不会删除任何多余的代码，删除无用代码的工作是 Uglify做的。webpack 做的事情是 unused harmony exports 的标记，也就是他会分析你的代码，把不用的 exports 删除，但是他不会删除全部的代码，只是把 exports 关键字删除了，变量的声明并没有删除。
+
+     - 上面是一个模块，如果我们这样引用 `import { x } from './a.js'`，那么webpack会进行 `unused harmony exports` 分析，他会发现你的 `y` 函数根本没用到，于是把y的 `exports` 声明去掉了，留下了一个无用的 `y` 函数声明。于是输出这样的代码： 
+
+     - 如果我们启用 `Uglify` 插件，由于y 函数没有被任何人使用，所以 Uglify 会把它直接删掉。 
+
+     - 简单总结:   这就是webpack 在`tree-shaking` 中扮演的角色：他会进行无用导出的分析，并把对应的 export 删除，但变量本身的声明并不会被删除。删除代码的操作是交给 uglify来做的。 
+
+     - **原理浅析**:
+
+       - webpack 的这个特性仅限于 `ES6` 模块语法，如果你用了 nodejs 的模块，即 `module.exports`，那么webpack 将 不会做任何优化。所以如果你使用了 `babel`，请一定不要把 ES6 modules 编译掉，否则 tree-shaking 将没有效果。 
+
+       - 为什么会这样呢，因为 `ES6 Modules` 是静态的，而 CMD 是动态的 
+
+       - > 1. ES6 Modules 只能作为模块顶层的语句出现，不能出现在 function 里面或是 if 里面。
+         > 2. import 的模块名只能是字符串常量。
+         > 3. 不管 import 的语句出现的位置在哪里，在模块初始化的时候所有的 import 都必须已经导入完成。换句话说，ES6 imports are hoisted。
+         > 4. import binding 是 immutable 的，类似 const。比如说你不能 import { a } from './a' 然后给 a 赋值个其他什么东西。
+
+         正因为这些特性，使得静态分析依赖变得很靠谱。否则如果无法静态分析，自然无法在编译阶段进行tree shaking。
+
+       - 运行代码:  webpack3-commonChunkPlugin 
+
+         - npm run treeshaking
+         - 添加uglifyJsPlugin插件, 查看压缩之后的代码
+
+     - TreeShaking 处理 ts
+
+       - 分析代码:**npm run tstreeshaking** sayWorld居然还是存在！！！怎么回事，为什么没有被触发tree-shaking优化？ 
+
+       - 因为tsc编译后的代码为es5 ，而正因如此，tsc默认使用了commonJS的规范来加载模块，因此并没有触发tree-shaking 
+
+     - TreeShaking 副作用
+
+       - **TreeShaking注意点:**显而易见的是，webpack 通过静态语法分析，找出了不用的 export ，把他们改成 free variable，而 Uglify同样也通过静态语法分析，找出了不用的变量声明，直接把他们删了。并不是直接流氓式的删除, 这点可以放心
+       - 但是函数副作用是非常复杂的，有没有可能被删除的 `y` 函数其实是有副作用的？肯定是存在的，比如我们在 `x` 中引用 一个对象的属性，然后设置 `getter` ，那么读取属性就会报错, 所以这里是我们需要注意的地方  (**webpack4-treeshaking代码分析**)
+
+## webpack 打包原理解析
+
+1. webpack只是一个打包模块的机制，只是把依赖的模块转化成可以代表这些包的静态文件。 
+
+2. webpack把任何形式的资源都视作模块 - loader机制, 不同的资源采用不同的loader进行转换。
+
+3. CMD、AMD 、import、css 、等都有相应的loader去进行转换。那为什么我们平时写的es6的模块机制，不用增加import的loader呢。因为我们使用了babel把import转换成了require。并且**Webpack 2 将增加对 ES6 模块的原生支持并且混用 ES6、AMD 和 CommonJS 模块**。这意味着 Webpack 现在可以识别 import 和 export 了，不需要先把它们转换成 CommonJS 模块的格式
+
+4. #### loader原理
+
+   在解析对于文件，会自动去调用响应的loader**loader 本质上是一个函数，输入参数是一个字符串，输出参数也是一个字符串。当然，输出的参数会被当成是 JS 代码，从而被 esprima 解析成 AST，触发进一步的依赖解析。**webpack会按照从右到左的顺序执行loader
+
+5. ### shell 与 config 解析
+
+   1. 每次在命令行输入 webpack 后，操作系统都会去调用 ./node_modules/.bin/webpack 这个 shell 脚本。
+
+      这个脚本会去调用 ./node_modules/webpack/bin/webpack.js 并追加输入的参数，
+      如 -p , -w 。(图中 webpack.js 是 webpack 的启动文件，而 $@ 是后缀参数)
+
+   2. optimist 分析参数并以键值对的形式把参数对象保存在 optimist.argv 中
+
+   3. config 合并与插件加载
+
+      1. 在加载插件之前，webpack 将 webpack.config.js 中的各个配置项拷贝到 options 对象中，并加载用户配置在 webpack.config.js 的 plugins 。接着 optimist.argv 会被传入到 `./node_modules/webpack/bin/convert-argv.js` 中，通过判断 argv 中参数的值决定是否去加载对应插件。(至于 webpack 插件运行机制，在之后的运行机制篇会提到) 
+
+6. ### 编译与构建流程
+
+   1. 在加载配置文件和 shell 后缀参数申明的插件，并传入构建信息 options 对象后，开始整个 webpack 打包最漫长的一步。而这个时候，真正的 webpack 对象才刚被初始化，具体的初始化逻辑在 lib/webpack.js 中
+   2. webpack 的实际入口是 Compiler 中的 run 方法，run 一旦执行后，就开始了编译和构建流程 ，其中有几个比较关键的 webpack 事件节点。((可以简单的看成是也该生命周期)
+
+7. 核心对象Compilation
+
+   1. compiler.run 后首先会触发 compile ，这一步会构建出 Compilation 对象 
+   2. 这个对象有两个作用，一是负责组织整个打包过程，包含了每个构建环节及输出环节所对应的方法，可以从图中看到比较关键的步骤，如 addEntry() , _addModuleChain() , buildModule() , seal() , createChunkAssets() (在每一个节点都会触发 webpack 事件去调用各插件)。二是该对象内部存放着所有 module ，chunk，生成的 asset 以及用来生成最后打包文件的 template 的信息。
+
+8. 编译与构建主流程
+
+   1. 上一步主要是构建出Compilation 对象 , 得到所有的资源信息以及输出对应环节方法
+   2.  在创建 module 之前，Compiler 会触发 make，并调用上一步创建的对象 `Compilation.addEntry` 方法，通过 options 对象(第一步中收集的option)的 entry 字段找到我们的入口js文件。之后，在 addEntry 中调用私有方法 `_addModuleChain` ，这个方法主要做了两件事情。一是根据模块的类型获取对应的模块工厂并创建模块，二是构建模块。 
+   3.  而构建模块作为最耗时的一步，又可细化为三步： 
+      - 调用各 loader 处理模块之间的依赖 
+        - webpack 提供的一个很大的便利就是能将所有资源都整合成模块，不仅仅是 js 文件。所以需要一些 loader ，比如 `url-loader` ， `jsx-loader` ， `css-loader` 等等来让我们可以直接在源文件中引用各类资源。webpack 调用 `doBuild()` ，对每一个 require() 用对应的 loader 进行加工，最后生成一个 js module。 
+        - 这里简单理解就是: 将各种类型的文件处理成为js module, 让webpack可以处理
+      - 调用 [acorn](https://github.com/ternjs/acorn) 解析经 loader 处理后的源文件生成抽象语法树 AST 
+        - A tiny, fast JavaScript parser, written completely in JavaScript. 
+        - 语言解析器来获取整一个 AST（abstract syntax tree）。 
+      - 遍历 AST，构建该模块所依赖的模块 
+        - 对于当前模块，或许存在着多个依赖模块。当前模块会开辟一个依赖模块的数组，在遍历 AST 时，将 require() 中的模块通过 `addDependency()` 添加到数组中。当前模块构建完成后，webpack 调用 `processModuleDependencies` 开始递归处理依赖的 module，接着就会重复之前的构建步骤。 
+        - 查找依赖项, 理解为: 从入口文件开始, 每一个module依赖了哪些模块, 把这些依赖放在addDependency数组中
+
+9. 构建细节
+
+   - module 是 webpack 构建的核心实体，也是所有 module 的 父类，它有几种不同子类：`NormalModule` , `MultiModule` , `ContextModule` , `DelegatedModule` 等。但这些核心实体都是在构建中都会去调用对应方法，也就是 `build()` 。 
+   	 build方法:	1. 初始化module信息，如context,id,chunks,dependencies等    2. 构建计算时间等等
+   - 对于每一个 module ，它都会有这样一个构建方法。它还包括了从构建到输出的一系列的有关 module 生命周期的函数，我们通过 module 父类类图其子类类图(这里以 NormalModule 为例)来观察其真实形态 
+   - 可以看到无论是构建流程，处理依赖流程，包括后面的封装流程都是与 module 密切相关的。
+
+10. ## 打包输出
+
+        1. 在所有模块及其依赖模块 build 完成后，webpack 会监听 `seal` 事件调用各插件对构建后的结果进行封装，要逐次对每个 module 和 chunk 进行整理，生成编译后的源码，合并，拆分，生成 hash 。 同时这是我们在开发时进行代码优化和功能添加的关键环节。 
+        2. 生成最终的assets
+      - 在封装过程中，webpack 会调用 Compilation 中的 `createChunkAssets` 方法进行打包后代码的生成。 createChunkAssets 流程如下： 
+      - **不同的template:** 从上图可以看出通过判断是入口 js 还是需要异步加载的 js 来选择不同的模板对象进行封装，入口 js 会采用 webpack 事件流的 render 事件来触发 `Template类` 中的 `renderChunkModules()` (异步加载的 js 会调用 chunkTemplate 中的 render 方法)。
+      - 在 webpack 中有四个 Template 的子类，分别是 `MainTemplate.js` ， `ChunkTemplate.js`，`ModuleTemplate.js` ， `HotUpdateChunkTemplate.js` ，前两者先前已大致有介绍，而 ModuleTemplate 是对所有模块进行一个代码生成，HotUpdateChunkTemplate 是对热替换模块的一个处理。 
+      - 模块封装:  模块在封装的时候和它在构建时一样，都是调用各模块类中的方法。封装通过调用 `module.source()` 来进行各操作，比如说 require() 的替换, moduleId的替换。 
+      -  生成assets:  各模块进行 doBlock 后，把 module 的最终代码循环添加到 sourcemap 中。一个 sourcemap 对应着一个 asset 对象，该对象保存了单个文件的文件名( name )和最终代码( value )。 
+
+11. **所有的模块都是js模块**
+
+    1.  webpack 只支持JS模块，所有其他类型的模块，比如图片，css等，都需要通过对应的loader转成JS模块。所以在webpack中无论任何类型的资源，本质上都被当成JS模块处理。 
+
+12. **所有的loader都是一个管道** 
+
+    1. 在webpack中，可以把一个loader看做是一个数据管道，进口是 一个字符串，然后经过加工，输出另一个字符串，多个loader可以像水管一样串联起来，很像java中的stream流。 
+
+    2. 很多人都说webpack复杂，难以理解，很大一部分原因是webpack是基于配置的，可配置项很多，并且每个参数传入的形式多种多样（可以是字符串、数组、对象、函数。。。），文档介绍也比较模糊，这么多的配置项各种排列组合，想想都复杂。而gulp基于流的方式来处理文件，无论从理解上，还是功能上都很容易上手。 
+
+    3. 上面简单对比了webpack与gulp配置的区别，当然这样比较是有问题的，gulp并不能进行模块化的处理。这里主要是想告诉大家使用gulp的时候，我们能明确的知道js文件是先进行babel转译，然后进行压缩混淆，最后输出文件。而webpack对我们来说完全是个黑盒，完全不知道plugins的执行顺序。正是因为这些原因，我们常常在使用webpack时有一些不安，不知道这个配置到底有没有生效，我要按某种方式打包到底该如何配置？
+
+       为了解决上面的问题，webpack4引入了`零配置`的概念, 能方便我们不少
+
+    4. loader的优点 *2
+
+13. 最简单的babel-loader如何指定使用自己的loader呢 
+
+    1. 直接在 `webpack` config 文件里面加一个 `resolveLoader` 的配置即可，我们这里把 `bable-loader` 指定为自己写的。 
+    2. 要实现一个babel-loader,  很显然我们需要使用babel-core来编译代码 (这里就是为什么我们在使用babel-loader的时候, 要安装babel-core  babel-loader  babel-presets) core的一个原因
+    3. 查一下 [babel-core](https://babeljs.io/docs/core-packages/) 文档，可以调用 `babel.transform` API来编译代码。再加上一些 `presets` 的设置，我们可以把上面的代码做一下改造如下： 
+    4. Babel-core 的API用法不在这里详细解释，有兴趣的可以直接去看官方的文档。我们这里做了一个很简单的转换，就是把 接收到的 `source` 源码，用 `babel` 编译一下，然后返回编译后的代码。 
+
+14. 支持一下sourceMap
+
+    1. 如果需要支持 sourcemap，显然需要把 `babel-core` 产生的 `sourcemap` 传给 `webpack`。之前因为只返回编译后的代码，所以我们直接返回了字符串，如果需要同时返回编译的代码和sourcemap，我们需要这个接口 [this.callback](https://webpack.js.org/api/loaders/#this-callback)，(不要问我怎么知道的) 因为官方文档上是这么说的 
+    2. 官方babel-loader 显然他的代码比我这边的代码多很多，他写了那么多，其实主要是增加了 Cache，以及增加了对异常的处理, 优化, 环境适配等
+
+15. 支持一下jsx
+
+    1. 我们是使用React写的组件，那么同样可以通过 `babel-loader` 来编译。关于如何编译JSX，babel官网这里做了很详细的文档 [transform-react-jsx](https://babeljs.io/docs/plugins/transform-react-jsx/)
+    2. 简单来说，就是 `babel-core` 本身虽然不支持 `jsx`，会报语法错误，但是我们可以通过加载一个插件就能支持 jsx
+    3. react 因为用的JSX，而jsx 因为全部编译成了JS 所以它的loader很简单。但是 Vue 的组件并不是可以直接就全部编译成JS，而是包括了 html,JS,CSS三部分，所以 `vue-loader` 相对来说就复杂很多了。  这里不探讨有兴趣可以下去分析
+
+16. Style-Loader 和 Css-Loader
+
+    1. **Style-Loader和CSS-Loader的工作原理** CSS代码会先被 `css-loader` 处理一次，然后再交给 `style-loader` 进行处理。那么这两步分别是做什么呢？ 
+       1. css-loader 的作用是处理css中的 `@import` 和 `url` 这样的外部资源
+       2. style-loader 的作用是把样式插入到 DOM中，方法是在head中插入一个style标签，并把样式写入到这个标签的 innerHTML 里
+    2. 通过图可以看到一个loader只做一件事。我们对图片等资源的处理和把样式插入到DOM分为两个任务，这样每个loader做的事情就比较简单，而且可以通过不同的组合实现更高级的功能。 
+
+17. Style-LOader原理解析
+
+    1. `style-loader` 的主要作用就是把 CSS 代码插入DOM中 
+    2. pitch解释
+       1. 正常情况下，我们会用 default 方法，那么这里我们为什么用一个 pitch 方法呢？简单的解释一下就是，默认的loader都是从右向左执行，用 pitching loader 是从左到右执行的。 
+       2. 我们为什么用 pitching loader呢？因为我们要把CSS文件的内容插入DOM，所以我们要获取CSS文件的样式。**如果按照默认的从右往左的顺序，我们使用 css-loader, 它返回的结果是一段JS字符串，这样我们就取不到CSS样式了。**为了获取CSS样式，我们会在 `style-loader` 中直接通过require来获取，这样返回的JS就不是字符串而是一段代码了。**也就是我们是先执行`style-loader`，在它里面再执行 `css-loader`。** **同样的字符串，但是在默认模式下是当字符串传入的，在pitching模式下是当代码运行的，就是这个区别。**
+       3. 也就是，我们处理CSS的时候，其实是 styled-loader先执行了，它里面会调用 css-loader 来拿到CSS的内容，拿到的内容当然是经过css-loader 编译过的。 style-loader此时从css-loader获取到的是JSObject, 可以执行的js对象, 从这个对象中获取到样式
+       4. *需要提的一点是，其实 css-loader 返回的也不是css的内容，而是一个对象，不过他的 toString() 方法会直接返回css的样式内容，那么为什么是这样的呢，因为这个是 css-loader 返回的结果*
+       5. **addStyle做了什么** 可以直接读 [style-loader](https://github.com/webpack-contrib/style-loader) 的源码，其实 addStyle 做的核心的事情就是在head中插入了一个 style标签，并把 CSS 内容写入这个标签中。 
+
+18.  代码分割个懒加载
 
 
 
@@ -1347,41 +1504,41 @@
 
    2. 在自己的项目下管理(通用的模块, 但是不需要每次都去import)
 
-   3.  上述可以通过
+   3. 上述可以通过插件的方式实现webpack.providePlugin, 在模块中注入我们需要的变量json, value就是模块的名称, 在使用的时候就是require
 
-      1. 插件的方式实现webpack.providePlugin, 在模块中注入我们需要的变量json, value就是模块的名称, 在使用的时候就是require
+      ```js
+      // 1. 针对使用线上cdn的情况
+      
+      // 在plugins数组中
+      new webpack.ProvidePlugin({ // npm install jquery
+            $: 'jquery' // key表示我们使用的时候的名称 $('div').addClass('new')
+      })
+      
+      // 使用的时候, 不需要import 直接使用变量即可
+      $('div').addClass('provide-class')
+      
+      // 2. 针对使用本地文件的形式
+      new webpack.ProvidePlugin({ // npm install jquery
+         // 这里的模块value必须和上面定义的alias中的key一致
+         React: 'react',
+         ReactDOM: 'react-dom'
+      })
+      
+      resolve: {
+          // 告诉webpack, 如果在node_modules中找不到的时候, 去哪里找模块
+          alias: {
+            // $表示只是将这一个ReactDOM关键字解析到某一个目录的文件下, 而不是解析到一个目录下
+            react$: path.resolve(__dirname, 'src/filedeal/libs/react.development.js'),
+            'react-dom$': path.resolve(__dirname, 'src/filedeal/libs/react.dom.development.js')
+          }
+       },
+      ```
 
-         ```js
-         // 1. 针对使用线上cdn的情况
-         
-         // 在plugins数组中
-         new webpack.ProvidePlugin({ // npm install jquery
-               $: 'jquery' // key表示我们使用的时候的名称 $('div').addClass('new')
-         })
-         
-         // 使用的时候, 不需要import 直接使用变量即可
-         $('div').addClass('provide-class')
-         
-         // 2. 针对使用本地文件的形式
-         new webpack.ProvidePlugin({ // npm install jquery
-            // 这里的模块value必须和上面定义的alias中的key一致
-            React: 'react',
-            ReactDOM: 'react-dom'
-         })
-         
-         resolve: {
-             // 告诉webpack, 如果在node_modules中找不到的时候, 去哪里找模块
-             alias: {
-               // $表示只是将这一个ReactDOM关键字解析到某一个目录的文件下, 而不是解析到一个目录下
-               react$: path.resolve(__dirname, 'src/filedeal/libs/react.development.js'),
-               'react-dom$': path.resolve(__dirname, 'src/filedeal/libs/react.dom.development.js')
-             }
-          },
-         ```
+      
 
-         
+      4. imports-loader, 通过options传参, 通过test匹配到模块
 
-      2. imports-loader, 通过options传参, 通过test匹配到模块
+            1. 下面代码的意思就是将 $:jquery 注入到app.js文件当中
 
          ```js
          {
@@ -1400,9 +1557,9 @@
 
          
 
-      3. window上挂载(比较野蛮, 调试的时候可以)
+      5. window上挂载(比较野蛮, 调试的时候可以)
 
-      4. 通过ProvidePlugin和 import直接引入区别
+      6. 通过ProvidePlugin和 import直接引入区别
 
          1. import $ from 'jquery' 引入之后，无论你在代码中是否使用jquery, 打包后, 都会打进去, 这样其实产生大量的冗余js
 
@@ -1417,11 +1574,7 @@
             })
             ```
 
-            
-
-          
-
-4. 生成HTML
+4. 生成html
 
    1. 自动生成html(将配对的css, js引入) HtmlWebpackPlugin
 
@@ -1743,7 +1896,7 @@
 
 
 
-# 第三节:  webpack打包分析
+# ps:第三节:  webpack打包分析
 
 ## 打包结果分析
 
@@ -1941,8 +2094,17 @@
 ## 长缓存优化
 
 1. 什么是长缓存优化
+2. webpack-dev-server,  Express+WebpackMiddleWare使用Express搭建,  HMR(模块热加载热更新机制), plugins, 长缓存的用法和实现原理
 
+ ## webpack4
 
+1. 零配置
+   1. 零配置就意味着webpack4具有默认配置，webpack运行时，会根据`mode`的值采取不同的默认配置。如果你没有给webpack传入mode，会抛出错误，并提示我们如果要使用webpack就需要设置一个mode。 
+   2. mode development none production
+   3. webpack4把很多插件相关的配置都迁移到了optimization中，但是我们看看官方文档对optimization的介绍简直寥寥无几，而在默认配置的代码中，webpack对optimization的配置有十几项，反正我是怕了
+   4. 这里还有一些其他的配置没有贴出来, 可以去
+2. loaders和plugins升级
+   1. 先说说`extract-text-webpack-plugin`，这个插件主要用于将多个css合并成一个css，减少http请求，命名时支持contenthash(根据文本内容生成hash)。但是webpack4使用有些问题，所以官方推荐使用`mini-css-extract-plugin`。 
 
 # 总结
 
