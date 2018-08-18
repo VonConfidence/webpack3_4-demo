@@ -1,5 +1,5 @@
 import './moduleA'
 
-console.log('this is in subPageA')
+console.log('this is in subPageB')
 
 export default 'subPageB'
