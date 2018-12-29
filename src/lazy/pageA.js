@@ -10,35 +10,38 @@ require.include('./moduleA')
 const page = 'subPageA'
 if (page === 'subPageA') {
   // require([]) 参数是空数组的话, 里面的require的包还是会被异步打包
-  require.ensure(['./subPageA'], require => {
-    const subPageA = require('./subPageA')
-    console.log(subPageA)
-  }, 'subPageA')
+  require.ensure(
+    ['./subPageA'],
+    require => {
+      const subPageA = require('./subPageA')
+      console.log(subPageA)
+    },
+    'subPageA',
+  )
 } else if (page === 'subPageB') {
-  require.ensure(['./subPageB'], require => {
-    const subPageB = require('./subPageB')
-    console.log(subPageB)
-  }, 'subPageB')
+  require.ensure(
+    ['./subPageB'],
+    require => {
+      const subPageB = require('./subPageB')
+      console.log(subPageB)
+    },
+    'subPageB',
+  )
 }
 
 // 3. 动态代码是会执行的, 并不是将代码引入到我们的页面中不执行, 在import的时候 代码实际上已经执行了
 //      会将subPageC打包进入subPageA中
 if (page) {
-  import(
-    /* webpackChunkName: "subPageA" */
-    /* webpackMode: "lazy" */
-    './subPageC'
-  ).then(subPageC => {
+  import(/* webpackChunkName: "subPageA" */
+  /* webpackMode: "lazy" */
+  './subPageC').then(subPageC => {
     console.log(subPageC)
   })
 } else {
-  import(
-    /* webpackChunkName: 'subPageD' */
-    /* webpackMode: "lazy" */
-    './subPageD'
-  )
+  import(/* webpackChunkName: 'subPageD' */
+  /* webpackMode: "lazy" */
+  './subPageD')
 }
-
 
 /**
  * 1. 这里需要在回调函数里面在require一次, 是因为如果不require
@@ -47,12 +50,15 @@ if (page) {
  *
  * 结果: 将lodash单独打包进一个文件vendor~vendor.chunk.js
  */
-require.ensure('lodash', require => {
-  const _ = require('lodash')
-  _.join([1, 2, 3], 4)
-}, 'vendor')
+require.ensure(
+  'lodash',
+  require => {
+    const _ = require('lodash')
+    _.join([1, 2, 3], 4)
+  },
+  'vendor',
+)
 
 // import * as _ from 'lodash'
-
 
 export default 'pageA'
